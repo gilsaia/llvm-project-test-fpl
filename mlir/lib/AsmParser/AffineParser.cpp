@@ -55,6 +55,7 @@ public:
   ParseResult parseAffineMapOrIntegerSetInline(AffineMap &map, IntegerSet &set);
   ParseResult parseIntegerSetConstraints(unsigned numDims, unsigned numSymbols,
                                          IntegerSet &result);
+  ParseResult parseMultipleIntegerSets(SmallVectorImpl<IntegerSet> &unionSet);
   ParseResult parseAffineMapOfSSAIds(AffineMap &map,
                                      OpAsmParser::Delimiter delimiter);
   ParseResult parseAffineExprOfSSAIds(AffineExpr &expr);
@@ -535,6 +536,30 @@ ParseResult AffineParser::parseAffineMapOrIntegerSetInline(AffineMap &map,
   return parseIntegerSetConstraints(numDims, numSymbols, set);
 }
 
+/// Parses the comma-separated integer sets.
+ParseResult
+AffineParser::parseMultipleIntegerSets(SmallVectorImpl<IntegerSet> &unionSet) {
+  unsigned numDims = 0, numSymbols = 0;
+
+  // List of dimensional and optional symbol identifiers.
+  if (parseDimAndOptionalSymbolIdList(numDims, numSymbols)) {
+    return failure();
+  }
+
+  if (parseToken(Token::colon, "expected ':'"))
+    return failure();
+
+  IntegerSet set;
+  do {
+    if (succeeded(parseIntegerSetConstraints(numDims, numSymbols, set)))
+      unionSet.push_back(set);
+    else
+      return failure();
+  } while (consumeIf(Token::comma));
+
+  return success();
+}
+
 /// Parse an AffineMap where the dim and symbol identifiers are SSA ids.
 ParseResult
 AffineParser::parseAffineMapOfSSAIds(AffineMap &map,
@@ -715,6 +740,13 @@ ParseResult Parser::parseIntegerSetReference(IntegerSet &set) {
   return success();
 }
 
+ParseResult
+Parser::parseMultipleIntegerSetsReference(SmallVectorImpl<IntegerSet> &set) {
+  if (AffineParser(state).parseMultipleIntegerSets(set))
+    return failure();
+  return success();
+}
+
 /// Parse an AffineMap of SSA ids. The callback 'parseElement' is used to
 /// parse SSA value uses encountered while parsing affine expressions.
 ParseResult
@@ -773,5 +805,33 @@ IntegerSet mlir::parseIntegerSet(StringRef inputStr, MLIRContext *context) {
   parseAffineMapOrIntegerSet(inputStr, context, map, set);
   assert(!map &&
          "expected string to represent IntegerSet, but got AffineMap instead");
+  return set;
+}
+
+SmallVector<IntegerSet, 4>
+mlir::parseMultipleIntegerSets(StringRef inputStr, MLIRContext *context,
+                               bool printDiagnosticInfo) {
+  llvm::SourceMgr sourceMgr;
+  auto memBuffer = llvm::MemoryBuffer::getMemBuffer(
+      inputStr, /*BufferName=*/"<mlir_parser_buffer>",
+      /*RequiresNullTerminator=*/false);
+  sourceMgr.AddNewSourceBuffer(std::move(memBuffer), SMLoc());
+  SymbolState symbolState;
+  ParserConfig config(context);
+  ParserState state(sourceMgr, config, symbolState, /*asmState=*/nullptr,
+                    /*codeCompleteContext=*/nullptr);
+  Parser parser(state);
+
+  raw_ostream &os = printDiagnosticInfo ? llvm::errs() : llvm::nulls();
+  SourceMgrDiagnosticHandler handler(sourceMgr, context, os);
+  SmallVector<IntegerSet, 4> set;
+  if (parser.parseMultipleIntegerSetsReference(set))
+    return SmallVector<IntegerSet, 4>();
+
+  Token endTok = parser.getToken();
+  if (endTok.isNot(Token::eof)) {
+    parser.emitError(endTok.getLoc(), "encountered unexpected token");
+    return SmallVector<IntegerSet, 4>();
+  }
   return set;
 }
