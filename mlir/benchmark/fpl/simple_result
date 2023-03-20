@@ -1,0 +1,15 @@
+2023-03-20T12:25:41-04:00
+Running ./FPLBenchmark
+Run on (64 X 3900 MHz CPU s)
+CPU Caches:
+  L1 Data 32 KiB (x32)
+  L1 Instruction 32 KiB (x32)
+  L2 Unified 1024 KiB (x32)
+  L3 Unified 22528 KiB (x2)
+Load Average: 0.42, 0.46, 0.40
+***WARNING*** CPU scaling is enabled, the benchmark real time measurements may be noisy and will incur extra overhead.
+***WARNING*** Library was built as DEBUG. Timings may be affected.
+----------------------------------------------------------------
+Benchmark                      Time             CPU   Iterations
+----------------------------------------------------------------
+BM_PresburgerSetEqual    5202366 ns      5202275 ns          142
