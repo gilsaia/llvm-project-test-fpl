@@ -156,6 +156,8 @@ public:
     denoms[i] = divisor;
   }
 
+  void normalizeDivs();
+
   void insertDiv(unsigned pos, ArrayRef<MPInt> dividend, const MPInt &divisor);
   void insertDiv(unsigned pos, unsigned num = 1);
 

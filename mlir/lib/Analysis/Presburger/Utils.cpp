@@ -431,8 +431,9 @@ void DivisionRepr::removeDuplicateDivs(
     llvm::function_ref<bool(unsigned i, unsigned j)> merge) {
 
   // Find and merge duplicate divisions.
-  // TODO: Add division normalization to support divisions that differ by
+  // Add division normalization to support divisions that differ by
   // a constant.
+  normalizeDivs();
   // TODO: Add division ordering such that a division representation for local
   // variable at position `i` only depends on local variables at position <
   // `i`. This would make sure that all divisions depending on other local
@@ -470,6 +471,16 @@ void DivisionRepr::removeDuplicateDivs(
       --j;
     }
   }
+}
+
+void DivisionRepr::normalizeDivs() {
+  for (unsigned i = 0; i < getNumDivs(); ++i) {
+    if (getDenom(i) == 0 || getDividend(i).empty()) {
+      continue;
+    }
+    normalizeDiv(getDividend(i), getDenom(i));
+  }
+  return;
 }
 
 void DivisionRepr::insertDiv(unsigned pos, ArrayRef<MPInt> dividend,
