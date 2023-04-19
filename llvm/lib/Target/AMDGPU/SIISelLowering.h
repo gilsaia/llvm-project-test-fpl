@@ -202,6 +202,7 @@ private:
   SDValue performInsertVectorEltCombine(SDNode *N, DAGCombinerInfo &DCI) const;
 
   SDValue reassociateScalarOps(SDNode *N, SelectionDAG &DAG) const;
+  SDValue reassociateSub(SDNode *N, SelectionDAG &DAG) const;
   unsigned getFusedOpcode(const SelectionDAG &DAG,
                           const SDNode *N0, const SDNode *N1) const;
   SDValue tryFoldToMad64_32(SDNode *N, DAGCombinerInfo &DCI) const;
@@ -364,7 +365,7 @@ public:
     SmallVectorImpl<SDValue> &MemOpChains,
     SDValue Chain) const;
 
-  SDValue LowerCallResult(SDValue Chain, SDValue InFlag,
+  SDValue LowerCallResult(SDValue Chain, SDValue InGlue,
                           CallingConv::ID CallConv, bool isVarArg,
                           const SmallVectorImpl<ISD::InputArg> &Ins,
                           const SDLoc &DL, SelectionDAG &DAG,

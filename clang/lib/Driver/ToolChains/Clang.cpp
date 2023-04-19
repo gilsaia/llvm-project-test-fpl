@@ -563,6 +563,16 @@ static void addDebugObjectName(const ArgList &Args, ArgStringList &CmdArgs,
     // Make the path absolute in the debug infos like MSVC does.
     llvm::sys::fs::make_absolute(ObjFileNameForDebug);
   }
+  // If the object file name is a relative path, then always use Windows
+  // backslash style as -object-file-name is used for embedding object file path
+  // in codeview and it can only be generated when targeting on Windows.
+  // Otherwise, just use native absolute path.
+  llvm::sys::path::Style Style =
+      llvm::sys::path::is_absolute(ObjFileNameForDebug)
+          ? llvm::sys::path::Style::native
+          : llvm::sys::path::Style::windows_backslash;
+  llvm::sys::path::remove_dots(ObjFileNameForDebug, /*remove_dot_dot=*/true,
+                               Style);
   CmdArgs.push_back(
       Args.MakeArgString(Twine("-object-file-name=") + ObjFileNameForDebug));
 }
@@ -1156,6 +1166,25 @@ void Clang::AddPreprocessingOptions(Compilation &C, const JobAction &JA,
     getToolChain().AddCudaIncludeArgs(Args, CmdArgs);
   if (JA.isOffloading(Action::OFK_HIP))
     getToolChain().AddHIPIncludeArgs(Args, CmdArgs);
+
+  // If we are compiling for a GPU target we want to override the system headers
+  // with ones created by the 'libc' project if present.
+  if (!Args.hasArg(options::OPT_nostdinc) &&
+      !Args.hasArg(options::OPT_nogpuinc) &&
+      !Args.hasArg(options::OPT_nobuiltininc) &&
+      (getToolChain().getTriple().isNVPTX() ||
+       getToolChain().getTriple().isAMDGCN())) {
+
+      // Add include/gpu-none-libc/* to our system include path. This lets us use
+      // GPU-specific system headers first. 
+      // TODO: We need to find a way to make these headers compatible with the
+      // host environment.
+      SmallString<128> P(llvm::sys::path::parent_path(D.InstalledDir));
+      llvm::sys::path::append(P, "include");
+      llvm::sys::path::append(P, "gpu-none-llvm");
+      CmdArgs.push_back("-c-isystem");
+      CmdArgs.push_back(Args.MakeArgString(P));
+  }
 
   // If we are offloading to a target via OpenMP we need to include the
   // openmp_wrappers folder which contains alternative system headers.
@@ -7146,6 +7175,8 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
 
     Args.addOptInFlag(CmdArgs, options::OPT_munsafe_fp_atomics,
                       options::OPT_mno_unsafe_fp_atomics);
+    Args.addOptOutFlag(CmdArgs, options::OPT_mamdgpu_ieee,
+                       options::OPT_mno_amdgpu_ieee);
   }
 
   // For all the host OpenMP offloading compile jobs we need to pass the targets
@@ -7666,6 +7697,8 @@ void Clang::AddClangCLArgs(const ArgList &Args, types::ID InputType,
     if (types::isCXX(InputType))
       CmdArgs.push_back("-fcxx-exceptions");
     CmdArgs.push_back("-fexceptions");
+    if (EH.Asynch)
+      CmdArgs.push_back("-fasync-exceptions");
   }
   if (types::isCXX(InputType) && EH.Synch && EH.NoUnwindC)
     CmdArgs.push_back("-fexternc-nounwind");

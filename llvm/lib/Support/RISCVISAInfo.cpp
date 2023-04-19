@@ -117,6 +117,7 @@ static const RISCVSupportedExtension SupportedExtensions[] = {
     {"svinval", RISCVExtensionVersion{1, 0}},
 
     // vendor-defined ('X') extensions
+    {"xsfvcp", RISCVExtensionVersion{1, 0}},
     {"xtheadba", RISCVExtensionVersion{1, 0}},
     {"xtheadbb", RISCVExtensionVersion{1, 0}},
     {"xtheadbs", RISCVExtensionVersion{1, 0}},
@@ -757,7 +758,7 @@ RISCVISAInfo::parseArchString(StringRef Arch, bool EnableExperimentalExtension,
   // Parse the ISA string containing non-standard user-level
   // extensions, standard supervisor-level extensions and
   // non-standard supervisor-level extensions.
-  // These extensions start with 'z', 'x', 's', 'sx' prefixes, follow a
+  // These extensions start with 'z', 's', 'x', 'sx' prefixes, follow a
   // canonical order, might have a version number (major, minor)
   // and are separated by a single underscore '_'.
   // Set the hardware features for the extensions that are supported.
@@ -768,7 +769,7 @@ RISCVISAInfo::parseArchString(StringRef Arch, bool EnableExperimentalExtension,
   OtherExts.split(Split, '_');
 
   SmallVector<StringRef, 8> AllExts;
-  std::array<StringRef, 4> Prefix{"z", "x", "s", "sx"};
+  std::array<StringRef, 4> Prefix{"z", "s", "x", "sx"};
   auto I = Prefix.begin();
   auto E = Prefix.end();
   if (Split.size() > 1 || Split[0] != "") {
@@ -935,6 +936,7 @@ static const char *ImpliedExtsZvfh[] = {"zve32f"};
 static const char *ImpliedExtsZvkn[] = {"zvkned", "zvknhb", "zvkb"};
 static const char *ImpliedExtsZvknhb[] = {"zvknha"};
 static const char *ImpliedExtsZvks[] = {"zvksed", "zvksh", "zvkb"};
+static const char *ImpliedExtsXsfvcp[] = {"zve32x"};
 static const char *ImpliedExtsXTHeadVdot[] = {"v"};
 static const char *ImpliedExtsZcb[] = {"zca"};
 static const char *ImpliedExtsZfa[] = {"f"};
@@ -955,6 +957,7 @@ static constexpr ImpliedExtsEntry ImpliedExts[] = {
     {{"d"}, {ImpliedExtsD}},
     {{"f"}, {ImpliedExtsF}},
     {{"v"}, {ImpliedExtsV}},
+    {{"xsfvcp"}, {ImpliedExtsXsfvcp}},
     {{"xtheadvdot"}, {ImpliedExtsXTHeadVdot}},
     {{"zcb"}, {ImpliedExtsZcb}},
     {{"zdinx"}, {ImpliedExtsZdinx}},

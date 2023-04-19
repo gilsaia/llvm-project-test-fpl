@@ -60,8 +60,6 @@ public:
 
 private:
   typename ELFT::Shdr *Header;
-
-  bool isTextOrDataSection() const;
 };
 
 template <typename ELFT>
@@ -95,8 +93,8 @@ Error ELFDebugObjectSection<ELFT>::validateInBounds(StringRef Buffer,
 
 template <typename ELFT>
 void ELFDebugObjectSection<ELFT>::dump(raw_ostream &OS, StringRef Name) {
-  if (Header->sh_addr) {
-    OS << formatv("  {0:x16} {1}\n", Header->sh_addr, Name);
+  if (uint64_t Addr = Header->sh_addr) {
+    OS << formatv("  {0:x16} {1}\n", Addr, Name);
   } else {
     OS << formatv("                     {0}\n", Name);
   }
@@ -168,8 +166,7 @@ void DebugObject::finalizeAsync(FinalizeContinuation OnFinalize) {
 
   if (auto SimpleSegAlloc = finalizeWorkingMemory()) {
     auto ROSeg = SimpleSegAlloc->getSegInfo(MemProt::Read);
-    ExecutorAddrRange DebugObjRange(ExecutorAddr(ROSeg.Addr),
-                                    ExecutorAddrDiff(ROSeg.WorkingMem.size()));
+    ExecutorAddrRange DebugObjRange(ROSeg.Addr, ROSeg.WorkingMem.size());
     SimpleSegAlloc->finalize(
         [this, DebugObjRange,
          OnFinalize = std::move(OnFinalize)](Expected<FinalizedAlloc> FA) {
@@ -267,11 +264,6 @@ ELFDebugObject::CreateArchType(MemoryBufferRef Buffer,
   Expected<ELFFile<ELFT>> ObjRef = ELFFile<ELFT>::create(DebugObj->getBuffer());
   if (!ObjRef)
     return ObjRef.takeError();
-
-  // TODO: Add support for other architectures.
-  uint16_t TargetMachineArch = ObjRef->getHeader().e_machine;
-  if (TargetMachineArch != ELF::EM_X86_64)
-    return nullptr;
 
   Expected<ArrayRef<SectionHeader>> Sections = ObjRef->sections();
   if (!Sections)
@@ -397,13 +389,14 @@ createDebugObjectFromBuffer(ExecutionSession &ES, LinkGraph &G,
 
 DebugObjectManagerPlugin::DebugObjectManagerPlugin(
     ExecutionSession &ES, std::unique_ptr<DebugObjectRegistrar> Target,
-    bool RequireDebugSections)
+    bool RequireDebugSections, bool AutoRegisterCode)
     : ES(ES), Target(std::move(Target)),
-      RequireDebugSections(RequireDebugSections) {}
+      RequireDebugSections(RequireDebugSections),
+      AutoRegisterCode(AutoRegisterCode) {}
 
 DebugObjectManagerPlugin::DebugObjectManagerPlugin(
     ExecutionSession &ES, std::unique_ptr<DebugObjectRegistrar> Target)
-    : DebugObjectManagerPlugin(ES, std::move(Target), true) {}
+    : DebugObjectManagerPlugin(ES, std::move(Target), true, true) {}
 
 DebugObjectManagerPlugin::~DebugObjectManagerPlugin() = default;
 
@@ -472,7 +465,8 @@ Error DebugObjectManagerPlugin::notifyEmitted(
           FinalizePromise.set_value(TargetMem.takeError());
           return;
         }
-        if (Error Err = Target->registerDebugObject(*TargetMem)) {
+        if (Error Err =
+                Target->registerDebugObject(*TargetMem, AutoRegisterCode)) {
           FinalizePromise.set_value(std::move(Err));
           return;
         }

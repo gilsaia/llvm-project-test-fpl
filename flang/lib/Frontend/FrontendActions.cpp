@@ -276,14 +276,17 @@ bool CodeGenAction::beginSourceFileAction() {
   // Fetch module from lb, so we can set
   mlirModule = std::make_unique<mlir::ModuleOp>(lb.getModule());
 
-  if (ci.getInvocation().getFrontendOpts().features.IsEnabled(
-          Fortran::common::LanguageFeature::OpenMP)) {
-    setOffloadModuleInterfaceAttributes(
-        *mlirModule, ci.getInvocation().getLangOpts().OpenMPIsDevice);
-  }
-
   if (!setUpTargetMachine())
     return false;
+
+  if (ci.getInvocation().getFrontendOpts().features.IsEnabled(
+          Fortran::common::LanguageFeature::OpenMP)) {
+    setOffloadModuleInterfaceAttributes(*mlirModule,
+                                        ci.getInvocation().getLangOpts());
+    setOffloadModuleInterfaceTargetAttribute(*mlirModule, tm->getTargetCPU(),
+                                             tm->getTargetFeatureString());
+  }
+
   const llvm::DataLayout &dl = tm->createDataLayout();
   setMLIRDataLayout(*mlirModule, dl);
 
@@ -662,8 +665,9 @@ void CodeGenAction::generateLLVMIR() {
 
   // Create the pass pipeline
   fir::createMLIRToLLVMPassPipeline(pm, level, opts.StackArrays,
-                                    opts.Underscoring, opts.getDebugInfo());
-  mlir::applyPassManagerCLOptions(pm);
+                                    opts.Underscoring, opts.LoopVersioning,
+                                    opts.getDebugInfo());
+  (void)mlir::applyPassManagerCLOptions(pm);
 
   // run the pass manager
   if (!mlir::succeeded(pm.run(*mlirModule))) {
@@ -701,7 +705,6 @@ void CodeGenAction::generateLLVMIR() {
       llvmModule->setPIELevel(
           static_cast<llvm::PIELevel::Level>(opts.PICLevel));
   }
-
 }
 
 bool CodeGenAction::setUpTargetMachine() {
