@@ -1,4 +1,6 @@
 #include "FPLBench.h"
+#include "utils.h"
+#include <chrono>
 #include <functional>
 
 /// This function parses a single set of integer constraints from the input
@@ -79,16 +81,6 @@ void FPLCountPreburgerRelationSize(PresburgerRelation &relation,
   }
 }
 
-std::function<void(std::string &, std::vector<PresburgerRelation> &,
-                   std::vector<PresburgerRelation> &)>
-    readFunc;
-
-std::function<void(PresburgerRelation &)> unaryExecFunc;
-
-std::function<void(PresburgerRelation &, PresburgerRelation &)> binaryExecFunc;
-
-std::string fileName;
-
 void FPLParseOneCaseOneInt(std::string &fileName,
                            std::vector<PresburgerRelation> &sets,
                            std::vector<PresburgerRelation> &setsNull) {
@@ -148,6 +140,14 @@ void FPLParseThreeCaseUseTwoCase(std::string &fileName,
   }
   in.close();
 }
+
+static std::function<void(std::string &, std::vector<PresburgerRelation> &,
+                          std::vector<PresburgerRelation> &)>
+    readFunc;
+static std::function<void(PresburgerRelation &)> unaryExecFunc;
+static std::function<void(PresburgerRelation &, PresburgerRelation &)>
+    binaryExecFunc;
+static std::string fileName;
 
 void FPLSetupUnion(const benchmark::State &state) {
   fileName = "./PresburgerSetUnion";
@@ -214,6 +214,23 @@ void BM_FPLUnaryOperationCheck(benchmark::State &state) {
     FPLCountPreburgerRelationSize(rel, relationSize);
   }
   state.counters["Constraint Size"] = relationSize;
+
+  // log info
+  std::vector<int> consSizes;
+  std::vector<double> consTimes;
+  for (auto &rel : setsA) {
+    unsigned long long size = 0;
+    FPLCountPreburgerRelationSize(rel, size);
+    consSizes.push_back(size);
+    auto begin = std::chrono::steady_clock::now();
+    unaryExecFunc(rel);
+    auto end = std::chrono::steady_clock::now();
+    consTimes.emplace_back(
+        std::chrono::duration<double, std::nano>(end - begin).count());
+  }
+  auto logFileName =
+      fileName + "_fpl" + (useSimplify ? "_simplify" : "") + "_info.csv";
+  LogAllInfo(logFileName, consSizes, consTimes);
 }
 
 template void BM_FPLUnaryOperationCheck<false>(benchmark::State &state);
@@ -240,6 +257,24 @@ void BM_FPLBinaryOperationCheck(benchmark::State &state) {
     FPLCountPreburgerRelationSize(rel, relationSize);
   }
   state.counters["Constraint Size"] = relationSize;
+
+  // log info
+  std::vector<int> consSizes;
+  std::vector<double> consTimes;
+  for (size_t i = 0; i < num; ++i) {
+    unsigned long long size = 0;
+    FPLCountPreburgerRelationSize(setsA[i], size);
+    FPLCountPreburgerRelationSize(setsB[i], size);
+    consSizes.push_back(size);
+    auto begin = std::chrono::steady_clock::now();
+    binaryExecFunc(setsA[i], setsB[i]);
+    auto end = std::chrono::steady_clock::now();
+    consTimes.emplace_back(
+        std::chrono::duration<double, std::nano>(end - begin).count());
+  }
+  auto logFileName =
+      fileName + "_fpl" + (useSimplify ? "_simplify" : "") + "_info.csv";
+  LogAllInfo(logFileName, consSizes, consTimes);
 }
 
 template void BM_FPLBinaryOperationCheck<false>(benchmark::State &state);

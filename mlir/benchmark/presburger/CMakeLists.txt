@@ -1,4 +1,4 @@
-add_benchmark(MLIRPresburgerBenchmark Benchmark.cpp FPLBench.cpp)
+add_benchmark(MLIRPresburgerBenchmark Benchmark.cpp FPLBench.cpp ISLBench.cpp utils.cpp)
 
 target_include_directories(MLIRPresburgerBenchmark PRIVATE ${MLIR_ISL_SOURCE}/include)
 

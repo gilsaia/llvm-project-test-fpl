@@ -1,3 +1,6 @@
+#ifndef MLIR_BENCHMARK_PRESBURGER_FPL_BENCH_H_
+#define MLIR_BENCHMARK_PRESBURGER_FPL_BENCH_H_
+
 #include "mlir/Analysis/Presburger/IntegerRelation.h"
 #include "mlir/Analysis/Presburger/PresburgerRelation.h"
 #include "mlir/Dialect/Affine/Analysis/AffineStructures.h"
@@ -61,3 +64,5 @@ void BM_FPLUnaryOperationCheck(benchmark::State &state);
 
 template <bool useSimplify = false>
 void BM_FPLBinaryOperationCheck(benchmark::State &state);
+
+#endif
