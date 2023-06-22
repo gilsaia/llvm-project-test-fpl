@@ -1,0 +1,9 @@
+*_relation
+*.txt
+*.csv
+*.png
+PresburgerSet*
+!compare.py
+!FplCases.tar.gz
+!IslCases.tar.gz
+!testcases.tar.gz

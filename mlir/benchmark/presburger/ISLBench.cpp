@@ -100,6 +100,44 @@ void ISLCountMapSize(isl_map *map, unsigned long long &size) {
   isl_map_foreach_basic_map(map, ISLCountBasicMapSize, &size);
 }
 
+isl_stat ISLOutputBasicMap(isl_basic_map *basic_map, void *fs) {
+  std::ostream *out = static_cast<std::ostream *>(fs);
+  auto eqs_mat =
+      isl_basic_map_equalities_matrix(basic_map, isl_dim_in, isl_dim_out,
+                                      isl_dim_param, isl_dim_div, isl_dim_cst);
+  auto ineqs_mat = isl_basic_map_inequalities_matrix(basic_map, isl_dim_in,
+                                                     isl_dim_out, isl_dim_param,
+                                                     isl_dim_div, isl_dim_cst);
+  (*out) << isl_mat_rows(eqs_mat) << " " << isl_mat_rows(ineqs_mat)
+         << std::endl;
+  int eqs_row = isl_mat_rows(eqs_mat);
+  int eqs_col = isl_mat_cols(eqs_mat);
+  for (int i = 0; i < eqs_row; ++i) {
+    for (int j = 0; j < eqs_col; ++j) {
+      isl_val *val = isl_mat_get_element_val(eqs_mat, i, j);
+      (*out) << isl_val_get_num_si(val) << " ";
+    }
+    (*out) << std::endl;
+  }
+  int ineqs_row = isl_mat_rows(ineqs_mat);
+  int ineqs_col = isl_mat_cols(ineqs_mat);
+  for (int i = 0; i < ineqs_row; ++i) {
+    for (int j = 0; j < ineqs_col; ++j) {
+      isl_val *val = isl_mat_get_element_val(ineqs_mat, i, j);
+      (*out) << isl_val_get_num_si(val) << " ";
+    }
+    (*out) << std::endl;
+  }
+  (*out) << std::endl;
+  return isl_stat_ok;
+}
+
+void ISLOutputMap(isl_map *map, std::ostream &out) {
+  out << isl_map_dim(map, isl_dim_in) << " " << isl_map_dim(map, isl_dim_param)
+      << " " << isl_map_n_basic_map(map) << std::endl;
+  isl_map_foreach_basic_map(map, ISLOutputBasicMap, &out);
+}
+
 static std::vector<isl_map *> setsNoUse;
 
 void ISLParseOneCaseOneInt(std::string &fileName, std::vector<isl_map *> &sets,
@@ -247,6 +285,15 @@ void BM_ISLUnaryOperationCheck(benchmark::State &state) {
   }
   state.counters["Constraint Size"] = relationSize;
 
+  // output isl relation
+  std::string outputFileName = fileName + "_isl_relation";
+  std::ofstream out(outputFileName);
+  out << setsCopyA.size() << std::endl;
+  for (size_t i = 0, n = setsCopyA.size(); i < n; ++i) {
+    ISLOutputMap(setsCopyA[i], out);
+  }
+  out.close();
+
   // log info
   std::vector<int> consSizes;
   std::vector<double> consTimes;
@@ -315,6 +362,20 @@ void BM_ISLBinaryOperationCheck(benchmark::State &state) {
     isl_map_free(setsCopyB[i]);
   }
   state.counters["Constraint Size"] = relationSize;
+
+  // output isl relation
+  std::string outputFileName = fileName + "_isl_relation";
+  std::ofstream out(outputFileName);
+  out << setsCopyA.size() << std::endl;
+  setsCopyB.clear();
+  ISLCopyMaps(setsB, setsCopyB);
+  for (size_t i = 0, n = setsCopyA.size(); i < n; ++i) {
+    ISLOutputMap(setsCopyA[i], out);
+    setsCopyB[i] = isl_map_coalesce(setsCopyB[i]);
+    ISLOutputMap(setsCopyB[i], out);
+    isl_map_free(setsCopyB[i]);
+  }
+  out.close();
 
   // log info
   std::vector<int> consSizes;
