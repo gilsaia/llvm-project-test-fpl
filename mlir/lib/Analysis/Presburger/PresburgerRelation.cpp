@@ -97,6 +97,27 @@ PresburgerRelation
 PresburgerRelation::intersect(const PresburgerRelation &set) const {
   assert(space.isCompatible(set.getSpace()) && "Spaces should match");
 
+  if ((getNumDisjuncts() == 0 || set.isUniverse()) &&
+      space.isEqual(set.getSpace()))
+    return *this;
+
+  if ((set.getNumDisjuncts() == 0 || isUniverse()) &&
+      space.isEqual(set.getSpace()))
+    return set;
+
+  // Special case, where both relation are convex, without any divs and such
+  // that either one of it contains a single constraint. Simply add constraint
+  // to the other relation.
+  if (isConvexNoLocals() && set.isConvexNoLocals() &&
+      space.isEqual(set.getSpace()) &&
+      (getDisjunct(0).getNumConstraints() == 1 ||
+       set.getDisjunct(0).getNumConstraints() == 1)) {
+    PresburgerRelation result(getSpace());
+    result.unionInPlace(getDisjunct(0));
+    result.getDisjunct(0).intersectAddConstraint(set.getDisjunct(0));
+    return result;
+  }
+
   PresburgerRelation result(getSpace());
   for (const IntegerRelation &csA : disjuncts) {
     for (const IntegerRelation &csB : set.disjuncts) {
@@ -451,6 +472,24 @@ bool PresburgerRelation::isSubsetOf(const PresburgerRelation &set) const {
 bool PresburgerRelation::isEqual(const PresburgerRelation &set) const {
   assert(space.isCompatible(set.getSpace()) && "Spaces should match");
   return this->isSubsetOf(set) && set.isSubsetOf(*this);
+}
+
+/// Return true if the Presburger relation is known to represent the universe
+/// set, false otherwise. A Presburger relation is considered to be the universe
+/// set if it contains at least one disjunct that is unconstrained, i.e., it
+/// does not have any constraints or conditions.
+bool PresburgerRelation::isUniverse() const {
+  for (auto &disjunct : getAllDisjuncts()) {
+    if (disjunct.getNumConstraints() == 0)
+      return true;
+  }
+  return false;
+}
+
+bool PresburgerRelation::isConvexNoLocals() const {
+  if (getNumDisjuncts() == 1 && getSpace().getNumLocalVars() == 0)
+    return true;
+  return false;
 }
 
 /// Return true if all the sets in the union are known to be integer empty,

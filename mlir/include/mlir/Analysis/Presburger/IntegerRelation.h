@@ -128,6 +128,11 @@ public:
   /// If there are locals, they will be merged.
   IntegerRelation intersect(IntegerRelation other) const;
 
+  /// Return the intersection of the two relations by directly adding the
+  /// current relation's constraint to the other relation. This specialized
+  /// version does not perform additional checks or modifications.
+  IntegerRelation intersectAddConstraint(IntegerRelation other) const;
+
   /// Return whether `this` and `other` are equal. This is integer-exact
   /// and somewhat expensive, since it uses the integer emptiness check
   /// (see IntegerRelation::findIntegerSample()).

@@ -110,6 +110,13 @@ public:
   /// false otherwise.
   bool isIntegerEmpty() const;
 
+  /// Return true if the set is known to be the universe set, false otherwise.
+  bool isUniverse() const;
+
+  /// Return true if the set is consist of a single disjunct, without any local
+  /// variables, false otherwise.
+  bool isConvexNoLocals() const;
+
   /// Find an integer sample from the given set. This should not be called if
   /// any of the disjuncts in the union are unbounded.
   bool findIntegerSample(SmallVectorImpl<MPInt> &sample);
