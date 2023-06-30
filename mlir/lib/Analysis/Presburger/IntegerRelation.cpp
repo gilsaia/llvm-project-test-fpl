@@ -75,6 +75,27 @@ IntegerRelation IntegerRelation::intersect(IntegerRelation other) const {
   return result;
 }
 
+IntegerRelation
+IntegerRelation::intersectSimplify(IntegerRelation other) const {
+  if (isEmptyByGCDTest()) {
+    return (*this);
+  }
+  if (other.isEmptyByGCDTest()) {
+    return other;
+  }
+  IntegerRelation result = *this;
+  result.mergeLocalVars(other);
+  result.append(other);
+  result.simplifyForIntersect();
+  return result;
+}
+
+void IntegerRelation::simplifyForIntersect() {
+  normalizeConstraintsByGCD();
+  removeRedundantLocalVars();
+  return;
+}
+
 bool IntegerRelation::isEqual(const IntegerRelation &other) const {
   assert(space.isCompatible(other.getSpace()) && "Spaces must be compatible.");
   return PresburgerRelation(*this).isEqual(PresburgerRelation(other));

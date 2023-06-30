@@ -128,6 +128,10 @@ public:
   /// If there are locals, they will be merged.
   IntegerRelation intersect(IntegerRelation other) const;
 
+  IntegerRelation intersectSimplify(IntegerRelation other) const;
+
+  void simplifyForIntersect();
+
   /// Return whether `this` and `other` are equal. This is integer-exact
   /// and somewhat expensive, since it uses the integer emptiness check
   /// (see IntegerRelation::findIntegerSample()).
