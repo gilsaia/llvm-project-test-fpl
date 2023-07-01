@@ -50,14 +50,20 @@ PresburgerRelation FPLParseOneCase(std::istream &in, MLIRContext &ctx);
 /// constraints in each disjunct and (variable count + 1) into the provided size
 /// variable.
 void FPLCountPreburgerRelationSize(PresburgerRelation &relation,
-                                   unsigned long long &size);
+                                   unsigned long long &size, bool useSimplify);
 
 void FPLSetupUnion(const benchmark::State &state);
+void FPLSetupUnionSimplify(const benchmark::State &state);
 void FPLSetupSubtract(const benchmark::State &state);
+void FPLSetupSubtractSimplify(const benchmark::State &state);
 void FPLSetupComplement(const benchmark::State &state);
+void FPLSetupComplementSimplify(const benchmark::State &state);
 void FPLSetupIntersect(const benchmark::State &state);
+void FPLSetupIntersectSimplify(const benchmark::State &state);
 void FPLSetupIsEqual(const benchmark::State &state);
+void FPLSetupIsEqualSimplify(const benchmark::State &state);
 void FPLSetupIsEmpty(const benchmark::State &state);
+void FPLSetupIsEmptySimplify(const benchmark::State &state);
 
 template <bool useSimplify = false>
 void BM_FPLUnaryOperationCheck(benchmark::State &state);

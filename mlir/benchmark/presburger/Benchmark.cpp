@@ -22,12 +22,13 @@ BENCHMARK(BM_FPLBinaryOperationCheck<false>)
     ->Iterations(5);
 BENCHMARK(BM_FPLBinaryOperationCheck<true>)
     ->Name("FPL_Union_Simplify")
-    ->Setup(FPLSetupUnion)
+    ->Setup(FPLSetupUnionSimplify)
     ->Iterations(5);
 BENCHMARK(BM_ISLBinaryOperationCheck)
     ->Name("ISL_Union")
     ->Setup(ISLSetupUnion)
-    ->Iterations(5);
+    ->Iterations(5)
+    ->UseManualTime();
 
 BENCHMARK(BM_FPLBinaryOperationCheck<false>)
     ->Name("FPL_Subtract")
@@ -35,12 +36,13 @@ BENCHMARK(BM_FPLBinaryOperationCheck<false>)
     ->Iterations(5);
 BENCHMARK(BM_FPLBinaryOperationCheck<true>)
     ->Name("FPL_Subtract_Simplify")
-    ->Setup(FPLSetupSubtract)
+    ->Setup(FPLSetupSubtractSimplify)
     ->Iterations(5);
 BENCHMARK(BM_ISLBinaryOperationCheck)
     ->Name("ISL_Subtract")
     ->Setup(ISLSetupSubtract)
-    ->Iterations(5);
+    ->Iterations(5)
+    ->UseManualTime();
 
 BENCHMARK(BM_FPLUnaryOperationCheck<false>)
     ->Name("FPL_Complement")
@@ -48,12 +50,13 @@ BENCHMARK(BM_FPLUnaryOperationCheck<false>)
     ->Iterations(70);
 BENCHMARK(BM_FPLUnaryOperationCheck<true>)
     ->Name("FPL_Complement_Simplify")
-    ->Setup(FPLSetupComplement)
+    ->Setup(FPLSetupComplementSimplify)
     ->Iterations(70);
 BENCHMARK(BM_ISLUnaryOperationCheck)
     ->Name("ISL_Complement")
     ->Setup(ISLSetupComplement)
-    ->Iterations(70);
+    ->Iterations(70)
+    ->UseManualTime();
 
 BENCHMARK(BM_FPLBinaryOperationCheck<false>)
     ->Name("FPL_Intersect")
@@ -61,12 +64,13 @@ BENCHMARK(BM_FPLBinaryOperationCheck<false>)
     ->Iterations(5);
 BENCHMARK(BM_FPLBinaryOperationCheck<true>)
     ->Name("FPL_Intersect_Simplify")
-    ->Setup(FPLSetupIntersect)
+    ->Setup(FPLSetupIntersectSimplify)
     ->Iterations(5);
 BENCHMARK(BM_ISLBinaryOperationCheck)
     ->Name("ISL_Intersect")
     ->Setup(ISLSetupIntersect)
-    ->Iterations(5);
+    ->Iterations(5)
+    ->UseManualTime();
 
 BENCHMARK(BM_FPLBinaryOperationCheck<false>)
     ->Name("FPL_IsEqual")
@@ -74,12 +78,13 @@ BENCHMARK(BM_FPLBinaryOperationCheck<false>)
     ->Iterations(120);
 BENCHMARK(BM_FPLBinaryOperationCheck<true>)
     ->Name("FPL_IsEqual_Simplify")
-    ->Setup(FPLSetupIsEqual)
+    ->Setup(FPLSetupIsEqualSimplify)
     ->Iterations(120);
 BENCHMARK(BM_ISLBinaryOperationCheck)
     ->Name("ISL_IsEqual")
     ->Setup(ISLSetupIsEqual)
-    ->Iterations(120);
+    ->Iterations(120)
+    ->UseManualTime();
 
 BENCHMARK(BM_FPLUnaryOperationCheck<false>)
     ->Name("FPL_IsEmpty")
@@ -87,11 +92,12 @@ BENCHMARK(BM_FPLUnaryOperationCheck<false>)
     ->Iterations(5);
 BENCHMARK(BM_FPLUnaryOperationCheck<true>)
     ->Name("FPL_IsEmpty_Simplify")
-    ->Setup(FPLSetupIsEmpty)
+    ->Setup(FPLSetupIsEmptySimplify)
     ->Iterations(5);
 BENCHMARK(BM_ISLUnaryOperationCheck)
     ->Name("ISL_IsEmpty")
     ->Setup(ISLSetupIsEmpty)
-    ->Iterations(5);
+    ->Iterations(5)
+    ->UseManualTime();
 
 BENCHMARK_MAIN();

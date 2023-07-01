@@ -47,7 +47,7 @@ isl_basic_map *ISLParseOneSet(std::istream &in, int &numDims, int &numSymbols,
         constraint = isl_constraint_set_coefficient_val(
             constraint, isl_dim_param, i - numDims, val);
       } else {
-        val = isl_val_neg(val);
+        // val = isl_val_neg(val);
         constraint = isl_constraint_set_constant_val(constraint, val);
       }
     }
@@ -202,15 +202,20 @@ static std::function<void(std::string &, std::vector<isl_map *> &,
                           std::vector<isl_map *> &, isl_ctx *,
                           std::vector<isl_id *> &)>
     readFunc;
-static std::function<isl_map *(isl_map *)> unaryExecFunc;
-static std::function<isl_map *(isl_map *, isl_map *)> binaryExecFunc;
+static std::function<isl_map *(isl_map *, double &)> unaryExecFunc;
+static std::function<isl_map *(isl_map *, isl_map *, double &)> binaryExecFunc;
 static std::string fileName;
 
 void ISLSetupUnion(const benchmark::State &state) {
   fileName = "./PresburgerSetUnion";
   readFunc = ISLParseThreeCaseUseTwoCase;
-  binaryExecFunc = [](isl_map *a, isl_map *b) {
+  binaryExecFunc = [](isl_map *a, isl_map *b, double &execTime) {
+    auto start = std::chrono::high_resolution_clock::now();
     benchmark::DoNotOptimize(a = isl_map_union(a, b));
+    auto end = std::chrono::high_resolution_clock::now();
+    execTime +=
+        std::chrono::duration_cast<std::chrono::duration<double>>(end - start)
+            .count();
     return a;
   };
 }
@@ -218,8 +223,13 @@ void ISLSetupUnion(const benchmark::State &state) {
 void ISLSetupSubtract(const benchmark::State &state) {
   fileName = "./PresburgerSetSubtract";
   readFunc = ISLParseThreeCaseUseTwoCase;
-  binaryExecFunc = [](isl_map *a, isl_map *b) {
+  binaryExecFunc = [](isl_map *a, isl_map *b, double &execTime) {
+    auto start = std::chrono::high_resolution_clock::now();
     benchmark::DoNotOptimize(a = isl_map_subtract(a, b));
+    auto end = std::chrono::high_resolution_clock::now();
+    execTime +=
+        std::chrono::duration_cast<std::chrono::duration<double>>(end - start)
+            .count();
     return a;
   };
 }
@@ -227,8 +237,13 @@ void ISLSetupSubtract(const benchmark::State &state) {
 void ISLSetupComplement(const benchmark::State &state) {
   fileName = "./PresburgerSetComplement";
   readFunc = ISLParseTwoCaseUseOneCase;
-  unaryExecFunc = [](isl_map *a) {
+  unaryExecFunc = [](isl_map *a, double &execTime) {
+    auto start = std::chrono::high_resolution_clock::now();
     benchmark::DoNotOptimize(a = isl_map_complement(a));
+    auto end = std::chrono::high_resolution_clock::now();
+    execTime +=
+        std::chrono::duration_cast<std::chrono::duration<double>>(end - start)
+            .count();
     return a;
   };
 }
@@ -236,8 +251,13 @@ void ISLSetupComplement(const benchmark::State &state) {
 void ISLSetupIntersect(const benchmark::State &state) {
   fileName = "./PresburgerSetIntersect";
   readFunc = ISLParseThreeCaseUseTwoCase;
-  binaryExecFunc = [](isl_map *a, isl_map *b) {
+  binaryExecFunc = [](isl_map *a, isl_map *b, double &execTime) {
+    auto start = std::chrono::high_resolution_clock::now();
     benchmark::DoNotOptimize(a = isl_map_intersect(a, b));
+    auto end = std::chrono::high_resolution_clock::now();
+    execTime +=
+        std::chrono::duration_cast<std::chrono::duration<double>>(end - start)
+            .count();
     return a;
   };
 }
@@ -245,19 +265,31 @@ void ISLSetupIntersect(const benchmark::State &state) {
 void ISLSetupIsEqual(const benchmark::State &state) {
   fileName = "./PresburgerSetEqual";
   readFunc = ISLParseTwoCaseOneInt;
-  binaryExecFunc = [](isl_map *a, isl_map *b) {
+  binaryExecFunc = [](isl_map *a, isl_map *b, double &execTime) {
+    auto start = std::chrono::high_resolution_clock::now();
     benchmark::DoNotOptimize(isl_map_is_equal(a, b));
+    auto end = std::chrono::high_resolution_clock::now();
+    execTime +=
+        std::chrono::duration_cast<std::chrono::duration<double>>(end - start)
+            .count();
+    setsNoUse.emplace_back(a);
     setsNoUse.emplace_back(b);
-    return a;
+    return isl_map_empty(isl_map_get_space(a));
   };
 }
 
 void ISLSetupIsEmpty(const benchmark::State &state) {
   fileName = "./PresburgerSetEmpty";
   readFunc = ISLParseOneCaseOneInt;
-  unaryExecFunc = [](isl_map *map) {
+  unaryExecFunc = [](isl_map *map, double &execTime) {
+    auto start = std::chrono::high_resolution_clock::now();
     benchmark::DoNotOptimize(isl_map_is_empty(map));
-    return map;
+    auto end = std::chrono::high_resolution_clock::now();
+    execTime +=
+        std::chrono::duration_cast<std::chrono::duration<double>>(end - start)
+            .count();
+    setsNoUse.emplace_back(map);
+    return isl_map_empty(isl_map_get_space(map));
   };
 }
 
@@ -268,19 +300,29 @@ void BM_ISLUnaryOperationCheck(benchmark::State &state) {
   ISLInitId(ctx, ids);
   readFunc(fileName, setsA, setsB, ctx, ids);
   for (auto _ : state) {
-    state.PauseTiming();
     ISLCopyMaps(setsA, setsCopyA);
-    state.ResumeTiming();
+
+    double execTime = 0;
 
     for (size_t i = 0, n = setsCopyA.size(); i < n; ++i) {
-      setsCopyA[i] = unaryExecFunc(setsCopyA[i]);
+      setsCopyA[i] = unaryExecFunc(setsCopyA[i], execTime);
     }
+    state.SetIterationTime(execTime);
   }
+
+  ISLCopyMaps(setsA, setsCopyA);
+  unsigned long long resultSize = 0;
+  for (size_t i = 0, n = setsCopyA.size(); i < n; ++i) {
+    double tmp = 0;
+    setsCopyA[i] = unaryExecFunc(setsCopyA[i], tmp);
+    ISLCountMapSize(setsCopyA[i], resultSize);
+  }
+  state.counters["Result Size"] = resultSize;
 
   ISLCopyMaps(setsA, setsCopyA);
   unsigned long long relationSize = 0;
   for (size_t i = 0, n = setsCopyA.size(); i < n; ++i) {
-    setsCopyA[i] = isl_map_coalesce(setsCopyA[i]);
+    // setsCopyA[i] = isl_map_coalesce(setsCopyA[i]);
     ISLCountMapSize(setsCopyA[i], relationSize);
   }
   state.counters["Constraint Size"] = relationSize;
@@ -297,23 +339,30 @@ void BM_ISLUnaryOperationCheck(benchmark::State &state) {
   // log info
   std::vector<int> consSizes;
   std::vector<double> consTimes;
+  std::vector<int> resultSizes;
   ISLCopyMaps(setsA, setsCopyA);
   for (auto &map : setsCopyA) {
     unsigned long long size = 0;
-    map = isl_map_coalesce(map);
+    // map = isl_map_coalesce(map);
     ISLCountMapSize(map, size);
     consSizes.push_back(size);
   }
   ISLCopyMaps(setsA, setsCopyA);
   for (auto &map : setsCopyA) {
-    auto begin = std::chrono::steady_clock::now();
-    map = unaryExecFunc(map);
-    auto end = std::chrono::steady_clock::now();
-    consTimes.emplace_back(
-        std::chrono::duration<double, std::nano>(end - begin).count());
+    double execTime = 0;
+    map = unaryExecFunc(map, execTime);
+    consTimes.emplace_back(execTime);
+  }
+  ISLCopyMaps(setsA, setsCopyA);
+  for (auto &map : setsCopyA) {
+    double tmp = 0;
+    map = unaryExecFunc(map, tmp);
+    unsigned long long size = 0;
+    ISLCountMapSize(map, size);
+    resultSizes.push_back(size);
   }
   auto logFileName = fileName + "_isl" + "_info.csv";
-  LogAllInfo(logFileName, consSizes, consTimes);
+  LogAllInfo(logFileName, consSizes, consTimes, resultSizes);
 
   for (auto map : setsCopyA) {
     isl_map_free(map);
@@ -339,24 +388,35 @@ void BM_ISLBinaryOperationCheck(benchmark::State &state) {
   readFunc(fileName, setsA, setsB, ctx, ids);
 
   for (auto _ : state) {
-    state.PauseTiming();
     ISLCopyMaps(setsA, setsCopyA);
     setsCopyB.clear();
     ISLCopyMaps(setsB, setsCopyB);
-    state.ResumeTiming();
 
+    double execTime = 0;
     for (size_t i = 0, n = setsCopyA.size(); i < n; ++i) {
-      setsCopyA[i] = binaryExecFunc(setsCopyA[i], setsCopyB[i]);
+      setsCopyA[i] = binaryExecFunc(setsCopyA[i], setsCopyB[i], execTime);
     }
+    state.SetIterationTime(execTime);
   }
+
+  ISLCopyMaps(setsA, setsCopyA);
+  setsCopyB.clear();
+  ISLCopyMaps(setsB, setsCopyB);
+  unsigned long long resultSize = 0;
+  for (size_t i = 0, n = setsCopyA.size(); i < n; ++i) {
+    double tmp = 0;
+    setsCopyA[i] = binaryExecFunc(setsCopyA[i], setsCopyB[i], tmp);
+    ISLCountMapSize(setsCopyA[i], resultSize);
+  }
+  state.counters["Result Size"] = resultSize;
 
   ISLCopyMaps(setsA, setsCopyA);
   setsCopyB.clear();
   ISLCopyMaps(setsB, setsCopyB);
   unsigned long long relationSize = 0;
   for (size_t i = 0, n = setsCopyA.size(); i < n; ++i) {
-    setsCopyA[i] = isl_map_coalesce(setsCopyA[i]);
-    setsCopyB[i] = isl_map_coalesce(setsCopyB[i]);
+    // setsCopyA[i] = isl_map_coalesce(setsCopyA[i]);
+    // setsCopyB[i] = isl_map_coalesce(setsCopyB[i]);
     ISLCountMapSize(setsCopyA[i], relationSize);
     ISLCountMapSize(setsCopyB[i], relationSize);
     isl_map_free(setsCopyB[i]);
@@ -371,22 +431,25 @@ void BM_ISLBinaryOperationCheck(benchmark::State &state) {
   ISLCopyMaps(setsB, setsCopyB);
   for (size_t i = 0, n = setsCopyA.size(); i < n; ++i) {
     ISLOutputMap(setsCopyA[i], out);
-    setsCopyB[i] = isl_map_coalesce(setsCopyB[i]);
+    // setsCopyB[i] = isl_map_coalesce(setsCopyB[i]);
     ISLOutputMap(setsCopyB[i], out);
-    isl_map_free(setsCopyB[i]);
+    double tmp = 0;
+    setsCopyA[i] = binaryExecFunc(setsCopyA[i], setsCopyB[i], tmp);
+    ISLOutputMap(setsCopyA[i], out);
   }
   out.close();
 
   // log info
   std::vector<int> consSizes;
   std::vector<double> consTimes;
+  std::vector<int> resultSizes;
   ISLCopyMaps(setsA, setsCopyA);
   setsCopyB.clear();
   ISLCopyMaps(setsB, setsCopyB);
   for (int i = 0, n = setsCopyA.size(); i < n; ++i) {
     unsigned long long size = 0;
-    setsCopyA[i] = isl_map_coalesce(setsCopyA[i]);
-    setsCopyB[i] = isl_map_coalesce(setsCopyB[i]);
+    // setsCopyA[i] = isl_map_coalesce(setsCopyA[i]);
+    // setsCopyB[i] = isl_map_coalesce(setsCopyB[i]);
     ISLCountMapSize(setsCopyA[i], size);
     ISLCountMapSize(setsCopyB[i], size);
     consSizes.push_back(size);
@@ -396,14 +459,23 @@ void BM_ISLBinaryOperationCheck(benchmark::State &state) {
   setsCopyB.clear();
   ISLCopyMaps(setsB, setsCopyB);
   for (int i = 0, n = setsCopyA.size(); i < n; ++i) {
-    auto begin = std::chrono::steady_clock::now();
-    setsCopyA[i] = binaryExecFunc(setsCopyA[i], setsCopyB[i]);
-    auto end = std::chrono::steady_clock::now();
-    consTimes.emplace_back(
-        std::chrono::duration<double, std::nano>(end - begin).count());
+    double execTime = 0;
+    setsCopyA[i] = binaryExecFunc(setsCopyA[i], setsCopyB[i], execTime);
+    consTimes.emplace_back(execTime);
   }
+  ISLCopyMaps(setsA, setsCopyA);
+  setsCopyB.clear();
+  ISLCopyMaps(setsB, setsCopyB);
+  for (int i = 0, n = setsCopyA.size(); i < n; ++i) {
+    double tmp = 0;
+    setsCopyA[i] = binaryExecFunc(setsCopyA[i], setsCopyB[i], tmp);
+    unsigned long long size = 0;
+    ISLCountMapSize(setsCopyA[i], size);
+    resultSizes.push_back(size);
+  }
+
   auto logFileName = fileName + "_isl" + "_info.csv";
-  LogAllInfo(logFileName, consSizes, consTimes);
+  LogAllInfo(logFileName, consSizes, consTimes, resultSizes);
 
   for (auto map : setsCopyA) {
     isl_map_free(map);

@@ -8,4 +8,7 @@
 void LogAllInfo(std::string &fileName, std::vector<int> &consSizes,
                 std::vector<double> &consTimes);
 
+void LogAllInfo(std::string &fileName, std::vector<int> &consSizes,
+                std::vector<double> &consTimes, std::vector<int> &resultSizes);
+
 #endif
