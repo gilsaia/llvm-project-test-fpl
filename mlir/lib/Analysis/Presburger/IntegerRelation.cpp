@@ -76,23 +76,29 @@ IntegerRelation IntegerRelation::intersect(IntegerRelation other) const {
 }
 
 IntegerRelation
+IntegerRelation::intersectAddConstraint(IntegerRelation other) const {
+  IntegerRelation result = *this;
+  result.append(other);
+  return result;
+}
+
+IntegerRelation
 IntegerRelation::intersectSimplify(IntegerRelation other) const {
-  if (isEmptyByGCDTest()) {
-    return (*this);
-  }
-  if (other.isEmptyByGCDTest()) {
-    return other;
-  }
   IntegerRelation result = *this;
   result.mergeLocalVars(other);
   result.append(other);
-  result.simplifyForIntersect();
   return result;
 }
 
 void IntegerRelation::simplifyForIntersect() {
+  if (isEmptyByGCDTest()) {
+    setEmpty();
+    return;
+  }
   normalizeConstraintsByGCD();
   removeRedundantLocalVars();
+
+  removeTrivialRedundancy();
   return;
 }
 
@@ -402,6 +408,15 @@ void IntegerRelation::swapVar(unsigned posA, unsigned posB) {
 void IntegerRelation::clearConstraints() {
   equalities.resizeVertically(0);
   inequalities.resizeVertically(0);
+}
+
+void IntegerRelation::setEmpty() {
+  clearConstraints();
+  auto col = getNumCols();
+  std::vector<int64_t> eqeff(col, 0);
+  eqeff.back() = 1;
+  ArrayRef<int64_t> eq(eqeff);
+  addEquality(eq);
 }
 
 /// Gather all lower and upper bounds of the variable at `pos`, and

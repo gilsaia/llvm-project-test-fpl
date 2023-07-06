@@ -128,6 +128,8 @@ public:
   /// If there are locals, they will be merged.
   IntegerRelation intersect(IntegerRelation other) const;
 
+  IntegerRelation intersectAddConstraint(IntegerRelation other) const;
+
   IntegerRelation intersectSimplify(IntegerRelation other) const;
 
   void simplifyForIntersect();
@@ -320,6 +322,9 @@ public:
 
   /// Removes all equalities and inequalities.
   void clearConstraints();
+
+  // Clear constraints and set 1==0
+  void setEmpty();
 
   /// Sets the `values.size()` variables starting at `po`s to the specified
   /// values and removes them.
