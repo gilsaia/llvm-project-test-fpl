@@ -75,13 +75,6 @@ IntegerRelation IntegerRelation::intersect(IntegerRelation other) const {
   return result;
 }
 
-IntegerRelation
-IntegerRelation::intersectAddConstraint(IntegerRelation other) const {
-  IntegerRelation result = *this;
-  result.append(other);
-  return result;
-}
-
 bool IntegerRelation::isEqual(const IntegerRelation &other) const {
   assert(space.isCompatible(other.getSpace()) && "Spaces must be compatible.");
   return PresburgerRelation(*this).isEqual(PresburgerRelation(other));

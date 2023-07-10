@@ -110,6 +110,9 @@ public:
   /// false otherwise.
   bool isIntegerEmpty() const;
 
+  /// Return true if there is no disjunct, false otherwise.
+  bool isPlainEmpty() const;
+
   /// Return true if the set is known to be the universe set, false otherwise.
   bool isUniverse() const;
 

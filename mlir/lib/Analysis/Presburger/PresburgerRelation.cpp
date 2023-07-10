@@ -97,26 +97,13 @@ PresburgerRelation
 PresburgerRelation::intersect(const PresburgerRelation &set) const {
   assert(space.isCompatible(set.getSpace()) && "Spaces should match");
 
-  if ((getNumDisjuncts() == 0 || set.isUniverse()) &&
-      space.isEqual(set.getSpace()))
+  // When there exists a set that is an empty set or a universe set, just
+  // directly returns another set
+  if (isPlainEmpty() || set.isUniverse())
     return *this;
 
-  if ((set.getNumDisjuncts() == 0 || isUniverse()) &&
-      space.isEqual(set.getSpace()))
+  if (set.isPlainEmpty() || isUniverse())
     return set;
-
-  // Special case, where both relation are convex, without any divs and such
-  // that either one of it contains a single constraint. Simply add constraint
-  // to the other relation.
-  if (isConvexNoLocals() && set.isConvexNoLocals() &&
-      space.isEqual(set.getSpace()) &&
-      (getDisjunct(0).getNumConstraints() == 1 ||
-       set.getDisjunct(0).getNumConstraints() == 1)) {
-    PresburgerRelation result(getSpace());
-    result.unionInPlace(getDisjunct(0));
-    result.getDisjunct(0).intersectAddConstraint(set.getDisjunct(0));
-    return result;
-  }
 
   PresburgerRelation result(getSpace());
   for (const IntegerRelation &csA : disjuncts) {
@@ -491,6 +478,9 @@ bool PresburgerRelation::isConvexNoLocals() const {
     return true;
   return false;
 }
+
+/// Return true if there is no disjunct, false otherwise.
+bool PresburgerRelation::isPlainEmpty() const { return getNumDisjuncts() == 0; }
 
 /// Return true if all the sets in the union are known to be integer empty,
 /// false otherwise.
