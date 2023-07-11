@@ -97,8 +97,8 @@ PresburgerRelation
 PresburgerRelation::intersect(const PresburgerRelation &set) const {
   assert(space.isCompatible(set.getSpace()) && "Spaces should match");
 
-  // When there exists a set that is an empty set or a universe set, just
-  // directly returns another set
+  // If the set is empty or the other set is universe,
+  // directly return the set
   if (isPlainEmpty() || set.isPlainUniverse())
     return *this;
 
