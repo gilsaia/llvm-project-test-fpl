@@ -99,10 +99,10 @@ PresburgerRelation::intersect(const PresburgerRelation &set) const {
 
   // When there exists a set that is an empty set or a universe set, just
   // directly returns another set
-  if (isPlainEmpty() || set.isUniverse())
+  if (isPlainEmpty() || set.isPlainUniverse())
     return *this;
 
-  if (set.isPlainEmpty() || isUniverse())
+  if (set.isPlainEmpty() || isPlainUniverse())
     return set;
 
   PresburgerRelation result(getSpace());
@@ -461,11 +461,11 @@ bool PresburgerRelation::isEqual(const PresburgerRelation &set) const {
   return this->isSubsetOf(set) && set.isSubsetOf(*this);
 }
 
-/// Return true if the Presburger relation is known to represent the universe
-/// set, false otherwise. A Presburger relation is considered to be the universe
-/// set if it contains at least one disjunct that is unconstrained, i.e., it
-/// does not have any constraints or conditions.
-bool PresburgerRelation::isUniverse() const {
+/// Return true if the Presburger relation represents the universe set, false
+/// otherwise. It is a simple check that only check if the relation has at least
+/// one unconstrained disjunct, indicating the absence of constraints or
+/// conditions.
+bool PresburgerRelation::isPlainUniverse() const {
   for (auto &disjunct : getAllDisjuncts()) {
     if (disjunct.getNumConstraints() == 0)
       return true;
