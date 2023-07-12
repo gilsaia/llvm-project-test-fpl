@@ -941,11 +941,11 @@ PresburgerSimpifyRelation PresburgerSimpifyRelation::intersect(
     const PresburgerSimpifyRelation &set) const {
   assert(space.isCompatible(set.getSpace()) && "Spaces should match");
 
-  if ((getNumDisjuncts() == 0 || set.isUniverse()) &&
+  if ((isPlainEmpty() || set.isPlainUniverse()) &&
       space.isEqual(set.getSpace()))
     return *this;
 
-  if ((set.getNumDisjuncts() == 0 || isUniverse()) &&
+  if ((set.isPlainEmpty() || isPlainUniverse()) &&
       space.isEqual(set.getSpace()))
     return set;
 
