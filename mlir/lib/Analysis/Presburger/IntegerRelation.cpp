@@ -1118,6 +1118,75 @@ void IntegerRelation::removeRedundantConstraints() {
   equalities.resizeVertically(pos);
 }
 
+void IntegerRelation::normalize() {
+  removeTrivialRedundancy();
+  sortConstraints();
+}
+
+void IntegerRelation::sortConstraints() {
+  auto eqs = getNumEqualities(), ineqs = getNumInequalities();
+  auto cmp = [](const std::pair<ArrayRef<MPInt>, unsigned int> &lhs,
+                const std::pair<ArrayRef<MPInt>, unsigned int> &rhs) {
+    unsigned int l1 = lhs.first.size() - 1, l2 = rhs.first.size() - 1;
+    while (l1 > 0 && lhs.first[l1] == 0) {
+      --l1;
+    }
+    while (l2 > 0 && rhs.first[l2] == 0) {
+      --l2;
+    }
+    if (l1 != l2) {
+      return l1 < l2;
+    }
+    if (abs(lhs.first[l1]) != abs(rhs.first[l2])) {
+      return abs(lhs.first[l1]) < abs(rhs.first[l2]);
+    }
+    return lhs.first[l1] < rhs.first[l2];
+  };
+  SmallVector<std::pair<ArrayRef<MPInt>, unsigned int>, 8> toSortEqs,
+      toSortIneqs;
+  for (unsigned int i = 0; i < eqs; ++i)
+    toSortEqs.emplace_back(std::make_pair(getEquality(i), i));
+  llvm::sort(toSortEqs, cmp);
+  unsigned int lastidx = 0;
+  while (lastidx < eqs) {
+    if (toSortEqs[lastidx].second != lastidx) {
+      unsigned int next = toSortEqs[lastidx].second, tmp;
+      tmp = toSortEqs[next].second;
+      equalities.swapRows(lastidx, next);
+      toSortEqs[lastidx].second = lastidx;
+      while (tmp != lastidx) {
+        equalities.swapRows(tmp, next);
+        toSortEqs[next].second = next;
+        next = tmp;
+        tmp = toSortEqs[next].second;
+      }
+      toSortEqs[tmp].second = tmp;
+    }
+    ++lastidx;
+  }
+
+  for (unsigned int i = 0; i < ineqs; ++i)
+    toSortIneqs.emplace_back(std::make_pair(getInequality(i), i));
+  llvm::sort(toSortIneqs, cmp);
+  lastidx = 0;
+  while (lastidx < ineqs) {
+    if (toSortIneqs[lastidx].second != lastidx) {
+      unsigned int next = toSortIneqs[lastidx].second, tmp;
+      tmp = toSortIneqs[next].second;
+      inequalities.swapRows(lastidx, next);
+      toSortIneqs[lastidx].second = lastidx;
+      while (tmp != lastidx) {
+        inequalities.swapRows(tmp, next);
+        toSortIneqs[next].second = next;
+        next = tmp;
+        tmp = toSortIneqs[next].second;
+      }
+      toSortIneqs[tmp].second = tmp;
+    }
+    ++lastidx;
+  }
+}
+
 std::optional<MPInt> IntegerRelation::computeVolume() const {
   assert(getNumSymbolVars() == 0 && "Symbols are not yet supported!");
 

@@ -937,44 +937,45 @@ PresburgerSet PresburgerSet::coalesce() const {
   return PresburgerSet(PresburgerRelation::coalesce());
 }
 
-PresburgerSimpifyRelation PresburgerSimpifyRelation::intersect(
-    const PresburgerSimpifyRelation &set) const {
-  assert(space.isCompatible(set.getSpace()) && "Spaces should match");
+// PresburgerSimpifyRelation PresburgerSimpifyRelation::intersect(
+//     const PresburgerSimpifyRelation &set) const {
+//   assert(space.isCompatible(set.getSpace()) && "Spaces should match");
 
-  if ((isPlainEmpty() || set.isPlainUniverse()) &&
-      space.isEqual(set.getSpace()))
-    return *this;
+//   if ((isPlainEmpty() || set.isPlainUniverse()) &&
+//       space.isEqual(set.getSpace()))
+//     return *this;
 
-  if ((set.isPlainEmpty() || isPlainUniverse()) &&
-      space.isEqual(set.getSpace()))
-    return set;
+//   if ((set.isPlainEmpty() || isPlainUniverse()) &&
+//       space.isEqual(set.getSpace()))
+//     return set;
 
-  // // Special case, where both relation are convex, without any divs and such
-  // // that either one of it contains a single constraint. Simply add
-  // constraint
-  // // to the other relation.
-  // if (isConvexNoLocals() && set.isConvexNoLocals() &&
-  //     space.isEqual(set.getSpace()) &&
-  //     (getDisjunct(0).getNumConstraints() == 1 ||
-  //      set.getDisjunct(0).getNumConstraints() == 1)) {
-  //   PresburgerSimpifyRelation result(getSpace());
-  //   result.unionInPlace(getDisjunct(0));
-  //   result.getDisjunct(0).intersectAddConstraint(set.getDisjunct(0));
-  //   return result;
-  // }
+//   // // Special case, where both relation are convex, without any divs and
+//   such
+//   // // that either one of it contains a single constraint. Simply add
+//   // constraint
+//   // // to the other relation.
+//   // if (isConvexNoLocals() && set.isConvexNoLocals() &&
+//   //     space.isEqual(set.getSpace()) &&
+//   //     (getDisjunct(0).getNumConstraints() == 1 ||
+//   //      set.getDisjunct(0).getNumConstraints() == 1)) {
+//   //   PresburgerSimpifyRelation result(getSpace());
+//   //   result.unionInPlace(getDisjunct(0));
+//   //   result.getDisjunct(0).intersectAddConstraint(set.getDisjunct(0));
+//   //   return result;
+//   // }
 
-  PresburgerSimpifyRelation result(getSpace());
-  for (const IntegerRelation &csA : disjuncts) {
-    for (const IntegerRelation &csB : set.disjuncts) {
-      IntegerRelation intersection = csA.intersectSimplify(csB);
-      if (!intersection.isEmpty())
-        result.unionInPlace(intersection);
-    }
-  }
-  return result;
-}
+//   PresburgerSimpifyRelation result(getSpace());
+//   for (const IntegerRelation &csA : disjuncts) {
+//     for (const IntegerRelation &csB : set.disjuncts) {
+//       IntegerRelation intersection = csA.intersectSimplify(csB);
+//       if (!intersection.isEmpty())
+//         result.unionInPlace(intersection);
+//     }
+//   }
+//   return result;
+// }
 
-PresburgerSimpifyRelation
-PresburgerSimpifyRelation::intersect(const PresburgerRelation &set) const {
-  return intersect(PresburgerSimpifyRelation(set));
-}
+// PresburgerSimpifyRelation
+// PresburgerSimpifyRelation::intersect(const PresburgerRelation &set) const {
+//   return intersect(PresburgerSimpifyRelation(set));
+// }

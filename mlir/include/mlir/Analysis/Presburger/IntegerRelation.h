@@ -547,6 +547,8 @@ public:
 
   void removeDuplicateDivs();
 
+  void normalize();
+
   /// Converts variables of kind srcKind in the range [varStart, varLimit) to
   /// variables of kind dstKind. If `pos` is given, the variables are placed at
   /// position `pos` of dstKind, otherwise they are placed after all the other
@@ -743,6 +745,8 @@ protected:
 
   /// Normalized each constraints by the GCD of its coefficients.
   void normalizeConstraintsByGCD();
+
+  void sortConstraints();
 
   /// Searches for a constraint with a non-zero coefficient at `colIdx` in
   /// equality (isEq=true) or inequality (isEq=false) constraints.

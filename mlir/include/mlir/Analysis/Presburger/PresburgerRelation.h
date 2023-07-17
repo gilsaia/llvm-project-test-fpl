@@ -227,9 +227,11 @@ class PresburgerSimpifyRelation : public PresburgerRelation {
 public:
   PresburgerSimpifyRelation(const PresburgerRelation &rel)
       : PresburgerRelation(rel) {}
-  PresburgerSimpifyRelation
-  intersect(const PresburgerSimpifyRelation &set) const;
-  PresburgerSimpifyRelation intersect(const PresburgerRelation &set) const;
+  // PresburgerSimpifyRelation
+  // intersect(const PresburgerSimpifyRelation &set) const;
+  // PresburgerSimpifyRelation intersect(const PresburgerRelation &set) const;
+
+  void normalize();
 
 protected:
   explicit PresburgerSimpifyRelation(const PresburgerSpace &space)
