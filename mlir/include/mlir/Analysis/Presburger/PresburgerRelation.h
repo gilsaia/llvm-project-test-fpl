@@ -231,7 +231,11 @@ public:
   // intersect(const PresburgerSimpifyRelation &set) const;
   // PresburgerSimpifyRelation intersect(const PresburgerRelation &set) const;
 
-  void normalize();
+  PresburgerSimpifyRelation normalize() const;
+  bool isPlainEqual(const PresburgerSimpifyRelation &other) const;
+  PresburgerSimpifyRelation subtract(const PresburgerRelation &set) const;
+  PresburgerSimpifyRelation
+  subtract(const PresburgerSimpifyRelation &set) const;
 
 protected:
   explicit PresburgerSimpifyRelation(const PresburgerSpace &space)

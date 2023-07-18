@@ -139,6 +139,8 @@ public:
   /// (see IntegerRelation::findIntegerSample()).
   bool isEqual(const IntegerRelation &other) const;
 
+  bool isPlainEqual(const IntegerRelation &other) const;
+
   /// Return whether this is a subset of the given IntegerRelation. This is
   /// integer-exact and somewhat expensive, since it uses the integer emptiness
   /// check (see IntegerRelation::findIntegerSample()).
@@ -547,7 +549,7 @@ public:
 
   void removeDuplicateDivs();
 
-  void normalize();
+  IntegerRelation normalize() const;
 
   /// Converts variables of kind srcKind in the range [varStart, varLimit) to
   /// variables of kind dstKind. If `pos` is given, the variables are placed at

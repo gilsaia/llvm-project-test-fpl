@@ -112,6 +112,34 @@ bool IntegerRelation::isSubsetOf(const IntegerRelation &other) const {
   return PresburgerRelation(*this).isSubsetOf(PresburgerRelation(other));
 }
 
+bool IntegerRelation::isPlainEqual(const IntegerRelation &other) const {
+  if (!space.isCompatible(other.getSpace())) {
+    return false;
+  }
+  if (getNumEqualities() != other.getNumEqualities()) {
+    return false;
+  }
+  if (getNumInequalities() != other.getNumInequalities()) {
+    return false;
+  }
+  unsigned int cols = getNumCols();
+  for (unsigned int i = 0, eqs = getNumEqualities(); i < eqs; ++i) {
+    for (unsigned int j = 0; j < cols; ++j) {
+      if (atEq(i, j) != other.atEq(i, j)) {
+        return false;
+      }
+    }
+  }
+  for (unsigned int i = 0, ineqs = getNumInequalities(); i < ineqs; ++i) {
+    for (unsigned int j = 0; j < cols; ++j) {
+      if (atIneq(i, j) != other.atIneq(i, j)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 MaybeOptimum<SmallVector<Fraction, 8>>
 IntegerRelation::findRationalLexMin() const {
   assert(getNumSymbolVars() == 0 && "Symbols are not supported!");
@@ -1118,9 +1146,11 @@ void IntegerRelation::removeRedundantConstraints() {
   equalities.resizeVertically(pos);
 }
 
-void IntegerRelation::normalize() {
-  removeTrivialRedundancy();
-  sortConstraints();
+IntegerRelation IntegerRelation::normalize() const {
+  IntegerRelation result = *this;
+  result.removeTrivialRedundancy();
+  result.sortConstraints();
+  return result;
 }
 
 void IntegerRelation::sortConstraints() {
@@ -1160,7 +1190,7 @@ void IntegerRelation::sortConstraints() {
         next = tmp;
         tmp = toSortEqs[next].second;
       }
-      toSortEqs[tmp].second = tmp;
+      toSortEqs[next].second = next;
     }
     ++lastidx;
   }
@@ -1181,7 +1211,7 @@ void IntegerRelation::sortConstraints() {
         next = tmp;
         tmp = toSortIneqs[next].second;
       }
-      toSortIneqs[tmp].second = tmp;
+      toSortIneqs[next].second = next;
     }
     ++lastidx;
   }

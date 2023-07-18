@@ -937,6 +937,93 @@ PresburgerSet PresburgerSet::coalesce() const {
   return PresburgerSet(PresburgerRelation::coalesce());
 }
 
+PresburgerSimpifyRelation PresburgerSimpifyRelation::normalize() const {
+  SmallVector<IntegerRelation, 8> disjuncts;
+  for (size_t i = 0, n = getNumDisjuncts(); i < n; ++i) {
+    IntegerRelation now = getDisjunct(i).normalize();
+    // IntegerRelation now = getDisjunct(i);
+    if (!now.isEmptyByGCDTest()) {
+      disjuncts.push_back(now);
+    }
+  }
+  auto cmp = [](const IntegerRelation &lhs, const IntegerRelation &rhs) {
+    if (lhs.getNumEqualities() != rhs.getNumEqualities()) {
+      return lhs.getNumEqualities() > rhs.getNumEqualities();
+    }
+    if (lhs.getNumInequalities() != rhs.getNumInequalities()) {
+      return lhs.getNumInequalities() > rhs.getNumInequalities();
+    }
+    unsigned int cols = lhs.getNumCols();
+    for (unsigned int i = 0, eqs = lhs.getNumEqualities(); i < eqs; ++i) {
+      for (unsigned int j = 0; j < cols; ++j) {
+        if (lhs.atEq(i, j) != rhs.atEq(i, j)) {
+          return lhs.atEq(i, j) < rhs.atEq(i, j);
+        }
+      }
+    }
+    for (unsigned int i = 0, ineqs = lhs.getNumInequalities(); i < ineqs; ++i) {
+      for (unsigned int j = 0; j < cols; ++j) {
+        if (lhs.atIneq(i, j) != rhs.atIneq(i, j)) {
+          return lhs.atIneq(i, j) < rhs.atIneq(i, j);
+        }
+      }
+    }
+    return false;
+  };
+  llvm::sort(disjuncts, cmp);
+
+  PresburgerSimpifyRelation result = PresburgerRelation::getEmpty(getSpace());
+  if (disjuncts.empty()) {
+    return result;
+  }
+  result.unionInPlace(disjuncts[0]);
+  for (unsigned int i = 1, n = disjuncts.size(); i < n; ++i) {
+    if (disjuncts[i - 1].isPlainEqual(disjuncts[i])) {
+      continue;
+    }
+    result.unionInPlace(disjuncts[i]);
+  }
+  return result;
+}
+
+bool PresburgerSimpifyRelation::isPlainEqual(
+    const PresburgerSimpifyRelation &other) const {
+  if (!space.isCompatible(other.getSpace())) {
+    return false;
+  }
+
+  if (getNumDisjuncts() != other.getNumDisjuncts()) {
+    return false;
+  }
+
+  for (unsigned int i = 0, n = getNumDisjuncts(); i < n; ++i) {
+    if (!getDisjunct(i).isPlainEqual(other.getDisjunct(i))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+PresburgerSimpifyRelation
+PresburgerSimpifyRelation::subtract(const PresburgerRelation &set) const {
+  return subtract(PresburgerSimpifyRelation(set));
+}
+
+PresburgerSimpifyRelation PresburgerSimpifyRelation::subtract(
+    const PresburgerSimpifyRelation &set) const {
+  assert(space.isCompatible(set.getSpace()) && "Spaces should match");
+  PresburgerSimpifyRelation result(getSpace());
+  // PresburgerSimpifyRelation now = normalize(), other = set.normalize();
+  PresburgerSimpifyRelation now = *this, other = set;
+  if (now.isPlainEqual(other)) {
+    return result;
+  }
+
+  // We compute (U_i t_i) \ (U_i set_i) as U_i (t_i \ V_i set_i).
+  for (const IntegerRelation &disjunct : now.getAllDisjuncts())
+    result.unionInPlace(getSetDifference(disjunct, other));
+  return result;
+}
 // PresburgerSimpifyRelation PresburgerSimpifyRelation::intersect(
 //     const PresburgerSimpifyRelation &set) const {
 //   assert(space.isCompatible(set.getSpace()) && "Spaces should match");
