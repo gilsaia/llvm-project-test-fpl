@@ -141,6 +141,8 @@ public:
 
   bool isPlainEqual(const IntegerRelation &other) const;
 
+  bool isPlainDisjoint(const IntegerRelation &other) const;
+
   /// Return whether this is a subset of the given IntegerRelation. This is
   /// integer-exact and somewhat expensive, since it uses the integer emptiness
   /// check (see IntegerRelation::findIntegerSample()).

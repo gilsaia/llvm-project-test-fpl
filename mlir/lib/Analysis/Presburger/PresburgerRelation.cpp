@@ -1004,6 +1004,30 @@ bool PresburgerSimpifyRelation::isPlainEqual(
   return true;
 }
 
+bool PresburgerSimpifyRelation::isPlainDisjoint(
+    const PresburgerSimpifyRelation &other) const {
+  if (isPlainEmpty() || other.isPlainEmpty()) {
+    return true;
+  }
+  if (!space.isCompatible(other.getSpace())) {
+    return true;
+  }
+  if (isPlainEqual(other)) {
+    return false;
+  }
+  // for (auto &disjunct : disjuncts) {
+  //   for (auto &otherDisjunct : other.getAllDisjuncts()) {
+  //     if (!disjunct.isPlainDisjoint(otherDisjunct)) {
+  //       return false;
+  //     }
+  //   }
+  // }
+  if (isPlainUniverse() || isPlainUniverse()) {
+    return false;
+  }
+  return false;
+}
+
 PresburgerSimpifyRelation
 PresburgerSimpifyRelation::subtract(const PresburgerRelation &set) const {
   return subtract(PresburgerSimpifyRelation(set));
@@ -1018,6 +1042,9 @@ PresburgerSimpifyRelation PresburgerSimpifyRelation::subtract(
   if (now.isPlainEqual(other)) {
     return result;
   }
+  // if (now.isPlainDisjoint(other)) {
+  //   return now;
+  // }
 
   // We compute (U_i t_i) \ (U_i set_i) as U_i (t_i \ V_i set_i).
   for (const IntegerRelation &disjunct : now.getAllDisjuncts())

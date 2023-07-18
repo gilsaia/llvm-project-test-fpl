@@ -233,6 +233,7 @@ public:
 
   PresburgerSimpifyRelation normalize() const;
   bool isPlainEqual(const PresburgerSimpifyRelation &other) const;
+  bool isPlainDisjoint(const PresburgerSimpifyRelation &other) const;
   PresburgerSimpifyRelation subtract(const PresburgerRelation &set) const;
   PresburgerSimpifyRelation
   subtract(const PresburgerSimpifyRelation &set) const;

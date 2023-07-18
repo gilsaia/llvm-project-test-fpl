@@ -140,6 +140,15 @@ bool IntegerRelation::isPlainEqual(const IntegerRelation &other) const {
   return true;
 }
 
+bool IntegerRelation::isPlainDisjoint(const IntegerRelation &other) const {
+  assert(space.isCompatible(other.getSpace()) && "Spaces must be compatible.");
+
+  if (!getNumEqualities() && !other.getNumEqualities()) {
+    return false;
+  }
+  // TODO try to get vec to see if disjunct
+}
+
 MaybeOptimum<SmallVector<Fraction, 8>>
 IntegerRelation::findRationalLexMin() const {
   assert(getNumSymbolVars() == 0 && "Symbols are not supported!");
