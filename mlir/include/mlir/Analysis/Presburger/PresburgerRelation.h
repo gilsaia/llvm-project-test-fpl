@@ -238,6 +238,20 @@ public:
   PresburgerSimpifyRelation
   subtract(const PresburgerSimpifyRelation &set) const;
 
+  /// Mutate this set, turning it into the union of this set and the given
+  /// disjunct.
+  void unionInPlace(const IntegerRelation &disjunct);
+
+  /// Mutate this set, turning it into the union of this set and the given set.
+  void unionInPlace(const PresburgerRelation &set);
+  void unionInPlace(const PresburgerSimpifyRelation &set);
+
+  /// Return the union of this set and the given set.
+  PresburgerRelation unionSet(const PresburgerRelation &set) const;
+  PresburgerRelation unionSet(const PresburgerSimpifyRelation &set) const;
+
+  PresburgerSimpifyRelation simplify();
+
 protected:
   explicit PresburgerSimpifyRelation(const PresburgerSpace &space)
       : PresburgerRelation(space) {

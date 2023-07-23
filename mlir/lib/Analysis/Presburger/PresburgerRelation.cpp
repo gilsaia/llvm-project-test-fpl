@@ -1051,6 +1051,63 @@ PresburgerSimpifyRelation PresburgerSimpifyRelation::subtract(
     result.unionInPlace(getSetDifference(disjunct, other));
   return result;
 }
+
+void PresburgerSimpifyRelation::unionInPlace(const IntegerRelation &disjunct) {
+  assert(space.isCompatible(disjunct.getSpace()) && "Spaces should match");
+  disjuncts.push_back(disjunct);
+}
+
+/// Mutate this set, turning it into the union of this set and the given set.
+void PresburgerSimpifyRelation::unionInPlace(const PresburgerRelation &set) {
+  return unionInPlace(PresburgerSimpifyRelation(set));
+}
+void PresburgerSimpifyRelation::unionInPlace(
+    const PresburgerSimpifyRelation &set) {
+  assert(space.isCompatible(set.getSpace()) && "Spaces should match");
+  if (isPlainEqual(set)) {
+    return;
+  }
+
+  if (isPlainEmpty()) {
+    disjuncts = set.disjuncts;
+    return;
+  }
+  if (set.isPlainEmpty()) {
+    return;
+  }
+
+  if (isPlainUniverse()) {
+    return;
+  }
+  if (set.isPlainUniverse()) {
+    disjuncts = set.disjuncts;
+    return;
+  }
+
+  for (const IntegerRelation &disjunct : set.disjuncts)
+    unionInPlace(disjunct);
+}
+
+/// Return the union of this set and the given set.
+PresburgerRelation
+PresburgerSimpifyRelation::unionSet(const PresburgerRelation &set) const {
+  return unionSet(PresburgerSimpifyRelation(set));
+}
+PresburgerRelation PresburgerSimpifyRelation::unionSet(
+    const PresburgerSimpifyRelation &set) const {
+  PresburgerSimpifyRelation result = *this;
+  result.unionInPlace(set);
+  return result;
+}
+
+PresburgerSimpifyRelation PresburgerSimpifyRelation::simplify() {
+  PresburgerSimpifyRelation rel = PresburgerSimpifyRelation(getSpace());
+  for (auto &disjunct : disjuncts) {
+    if (disjunct.simplifyBasic())
+      rel.unionInPlace(disjunct);
+  }
+  return rel;
+}
 // PresburgerSimpifyRelation PresburgerSimpifyRelation::intersect(
 //     const PresburgerSimpifyRelation &set) const {
 //   assert(space.isCompatible(set.getSpace()) && "Spaces should match");

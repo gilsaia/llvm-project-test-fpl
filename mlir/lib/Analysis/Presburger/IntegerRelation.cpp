@@ -102,6 +102,16 @@ void IntegerRelation::simplifyForIntersect() {
   return;
 }
 
+bool IntegerRelation::simplifyBasic() {
+  // normalize();
+  normalizeConstraintsByGCD();
+  gaussianEliminate();
+  if (isEmptyByGCDTest() || hasInvalidConstraint()) {
+    return false;
+  }
+  return true;
+}
+
 bool IntegerRelation::isEqual(const IntegerRelation &other) const {
   assert(space.isCompatible(other.getSpace()) && "Spaces must be compatible.");
   return PresburgerRelation(*this).isEqual(PresburgerRelation(other));
@@ -147,6 +157,7 @@ bool IntegerRelation::isPlainDisjoint(const IntegerRelation &other) const {
     return false;
   }
   // TODO try to get vec to see if disjunct
+  return false;
 }
 
 MaybeOptimum<SmallVector<Fraction, 8>>
@@ -1088,6 +1099,52 @@ unsigned IntegerRelation::gaussianEliminateVars(unsigned posStart,
   // Remove eliminated columns from all constraints.
   removeVarRange(posStart, posLimit);
   return posLimit - posStart;
+}
+
+void IntegerRelation::gaussianEliminate() {
+  gcdTightenInequalities();
+  unsigned lastVar = 0, vars = getNumVars();
+  unsigned nowDone, eqs, pivotRow;
+  for (nowDone = 0, eqs = getNumEqualities(); nowDone < eqs; ++nowDone) {
+    for (; lastVar < vars; ++lastVar) {
+      if (!findConstraintWithNonZeroAt(lastVar, true, &pivotRow)) {
+        continue;
+      }
+      break;
+    }
+    if (lastVar >= vars)
+      break;
+    if (pivotRow > nowDone) {
+      equalities.swapRows(pivotRow, nowDone);
+      pivotRow = nowDone;
+    }
+    for (unsigned i = nowDone + 1; i < eqs; ++i) {
+      eliminateFromConstraint(this, i, pivotRow, lastVar, 0, true);
+      equalities.normalizeRow(i);
+    }
+    for (unsigned i = 0, ineqs = getNumInequalities(); i < ineqs; ++i) {
+      eliminateFromConstraint(this, i, pivotRow, lastVar, 0, false);
+      inequalities.normalizeRow(i);
+    }
+    gcdTightenInequalities();
+  }
+
+  if (nowDone != eqs) {
+    printf("Work for done:%u eqs:%u\n", nowDone, eqs);
+  }
+
+  if (nowDone == eqs)
+    return;
+
+  for (unsigned i = nowDone; i < eqs; ++i) {
+    if (atEq(i, vars) == 0)
+      continue;
+
+    setEmpty();
+    return;
+  }
+  removeEqualityRange(nowDone, eqs);
+  return;
 }
 
 // A more complex check to eliminate redundant inequalities. Uses FourierMotzkin

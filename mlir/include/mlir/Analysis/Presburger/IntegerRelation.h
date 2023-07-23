@@ -134,6 +134,8 @@ public:
 
   void simplifyForIntersect();
 
+  bool simplifyBasic();
+
   /// Return whether `this` and `other` are equal. This is integer-exact
   /// and somewhat expensive, since it uses the integer emptiness check
   /// (see IntegerRelation::findIntegerSample()).
@@ -728,6 +730,8 @@ protected:
   /// in column range [posStart, posLimit).
   /// Returns the number of variables eliminated.
   unsigned gaussianEliminateVars(unsigned posStart, unsigned posLimit);
+
+  void gaussianEliminate();
 
   /// Eliminates the variable at the specified position using Fourier-Motzkin
   /// variable elimination, but uses Gaussian elimination if there is an
