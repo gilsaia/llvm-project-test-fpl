@@ -1093,7 +1093,7 @@ PresburgerRelation
 PresburgerSimpifyRelation::unionSet(const PresburgerRelation &set) const {
   return unionSet(PresburgerSimpifyRelation(set));
 }
-PresburgerRelation PresburgerSimpifyRelation::unionSet(
+PresburgerSimpifyRelation PresburgerSimpifyRelation::unionSet(
     const PresburgerSimpifyRelation &set) const {
   PresburgerSimpifyRelation result = *this;
   result.unionInPlace(set);

@@ -248,7 +248,8 @@ public:
 
   /// Return the union of this set and the given set.
   PresburgerRelation unionSet(const PresburgerRelation &set) const;
-  PresburgerRelation unionSet(const PresburgerSimpifyRelation &set) const;
+  PresburgerSimpifyRelation
+  unionSet(const PresburgerSimpifyRelation &set) const;
 
   PresburgerSimpifyRelation simplify();
 
