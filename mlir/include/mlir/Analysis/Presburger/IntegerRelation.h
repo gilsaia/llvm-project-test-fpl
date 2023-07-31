@@ -733,6 +733,8 @@ protected:
 
   void gaussianEliminate();
 
+  void removeDuplicateConstraints();
+
   /// Eliminates the variable at the specified position using Fourier-Motzkin
   /// variable elimination, but uses Gaussian elimination if there is an
   /// equality involving that variable. If the result of the elimination is

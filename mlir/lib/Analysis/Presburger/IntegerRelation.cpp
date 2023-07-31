@@ -109,6 +109,7 @@ bool IntegerRelation::simplifyBasic() {
   if (isEmptyByGCDTest() || hasInvalidConstraint()) {
     return false;
   }
+  removeDuplicateConstraints();
   return true;
 }
 
@@ -1129,9 +1130,9 @@ void IntegerRelation::gaussianEliminate() {
     gcdTightenInequalities();
   }
 
-  if (nowDone != eqs) {
-    printf("Work for done:%u eqs:%u\n", nowDone, eqs);
-  }
+  // if (nowDone != eqs) {
+  //   printf("Work for done:%u eqs:%u\n", nowDone, eqs);
+  // }
 
   if (nowDone == eqs)
     return;
@@ -1145,6 +1146,58 @@ void IntegerRelation::gaussianEliminate() {
   }
   removeEqualityRange(nowDone, eqs);
   return;
+}
+
+void IntegerRelation::removeDuplicateConstraints() {
+  SmallDenseMap<ArrayRef<MPInt>, unsigned> hashTable;
+  unsigned ineqs = getNumInequalities(), cols = getNumCols();
+  if (ineqs <= 1) {
+    return;
+  }
+  auto row = getInequality(0).drop_back();
+  hashTable.insert({row, 0});
+  for (unsigned k = 1; k < ineqs; ++k) {
+    auto nRow = getInequality(k).drop_back();
+    if (!hashTable.contains(nRow)) {
+      hashTable.insert({nRow, k});
+      continue;
+    }
+    unsigned l = hashTable[nRow];
+    if (atIneq(k, cols - 1) <= atIneq(l, cols - 1)) {
+      inequalities.swapRows(k, l);
+    }
+    removeInequality(k);
+    --k;
+    --ineqs;
+  }
+  inequalities.appendExtraRow();
+  bool changed = false;
+  for (unsigned k = 0; k < ineqs; ++k) {
+    inequalities.copyRow(k, ineqs);
+    inequalities.negateRow(ineqs);
+    auto nRow = getInequality(ineqs).drop_back();
+    if (!hashTable.contains(nRow)) {
+      continue;
+    }
+    unsigned l = hashTable[nRow];
+    auto sum = atIneq(l, cols - 1) + atIneq(k, cols - 1);
+    if (sum > 0) {
+      continue;
+    }
+    changed = true;
+    if (sum == 0) {
+      addEquality(getInequality(k));
+      removeInequality(ineqs);
+      removeInequality(l);
+      removeInequality(k);
+    } else {
+      setEmpty();
+    }
+    break;
+  }
+  if (!changed) {
+    removeInequality(ineqs);
+  }
 }
 
 // A more complex check to eliminate redundant inequalities. Uses FourierMotzkin
