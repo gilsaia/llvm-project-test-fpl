@@ -731,9 +731,9 @@ protected:
   /// Returns the number of variables eliminated.
   unsigned gaussianEliminateVars(unsigned posStart, unsigned posLimit);
 
-  void gaussianEliminate();
+  bool gaussianEliminate();
 
-  void removeDuplicateConstraints();
+  bool removeDuplicateConstraints();
 
   /// Eliminates the variable at the specified position using Fourier-Motzkin
   /// variable elimination, but uses Gaussian elimination if there is an

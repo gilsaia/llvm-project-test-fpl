@@ -104,12 +104,16 @@ void IntegerRelation::simplifyForIntersect() {
 
 bool IntegerRelation::simplifyBasic() {
   // normalize();
-  normalizeConstraintsByGCD();
-  gaussianEliminate();
-  if (isEmptyByGCDTest() || hasInvalidConstraint()) {
-    return false;
+  bool changed = true;
+  while (changed) {
+    changed = false;
+    normalizeConstraintsByGCD();
+    changed |= gaussianEliminate();
+    if (isEmptyByGCDTest() || hasInvalidConstraint()) {
+      return false;
+    }
+    changed |= removeDuplicateConstraints();
   }
-  removeDuplicateConstraints();
   return true;
 }
 
@@ -1102,7 +1106,7 @@ unsigned IntegerRelation::gaussianEliminateVars(unsigned posStart,
   return posLimit - posStart;
 }
 
-void IntegerRelation::gaussianEliminate() {
+bool IntegerRelation::gaussianEliminate() {
   gcdTightenInequalities();
   unsigned lastVar = 0, vars = getNumVars();
   unsigned nowDone, eqs, pivotRow;
@@ -1135,24 +1139,25 @@ void IntegerRelation::gaussianEliminate() {
   // }
 
   if (nowDone == eqs)
-    return;
+    return false;
 
   for (unsigned i = nowDone; i < eqs; ++i) {
     if (atEq(i, vars) == 0)
       continue;
 
     setEmpty();
-    return;
+    return true;
   }
   removeEqualityRange(nowDone, eqs);
-  return;
+  return true;
 }
 
-void IntegerRelation::removeDuplicateConstraints() {
+bool IntegerRelation::removeDuplicateConstraints() {
+  bool changed = false;
   SmallDenseMap<ArrayRef<MPInt>, unsigned> hashTable;
   unsigned ineqs = getNumInequalities(), cols = getNumCols();
   if (ineqs <= 1) {
-    return;
+    return changed;
   }
   auto row = getInequality(0).drop_back();
   hashTable.insert({row, 0});
@@ -1163,6 +1168,7 @@ void IntegerRelation::removeDuplicateConstraints() {
       continue;
     }
     unsigned l = hashTable[nRow];
+    changed = true;
     if (atIneq(k, cols - 1) <= atIneq(l, cols - 1)) {
       inequalities.swapRows(k, l);
     }
@@ -1171,7 +1177,7 @@ void IntegerRelation::removeDuplicateConstraints() {
     --ineqs;
   }
   inequalities.appendExtraRow();
-  bool changed = false;
+  bool negChanged = false;
   for (unsigned k = 0; k < ineqs; ++k) {
     inequalities.copyRow(k, ineqs);
     inequalities.negateRow(ineqs);
@@ -1184,6 +1190,7 @@ void IntegerRelation::removeDuplicateConstraints() {
     if (sum > 0) {
       continue;
     }
+    negChanged = true;
     changed = true;
     if (sum == 0) {
       addEquality(getInequality(k));
@@ -1195,9 +1202,10 @@ void IntegerRelation::removeDuplicateConstraints() {
     }
     break;
   }
-  if (!changed) {
+  if (!negChanged) {
     removeInequality(ineqs);
   }
+  return changed;
 }
 
 // A more complex check to eliminate redundant inequalities. Uses FourierMotzkin
