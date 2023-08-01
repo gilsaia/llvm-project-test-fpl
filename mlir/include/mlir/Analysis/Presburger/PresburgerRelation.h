@@ -237,6 +237,44 @@ protected:
   }
 };
 
+class PresburgerSimpifyRelation : public PresburgerRelation {
+public:
+  PresburgerSimpifyRelation(const PresburgerRelation &rel)
+      : PresburgerRelation(rel) {}
+  // PresburgerSimpifyRelation
+  // intersect(const PresburgerSimpifyRelation &set) const;
+  // PresburgerSimpifyRelation intersect(const PresburgerRelation &set) const;
+
+  PresburgerSimpifyRelation normalize() const;
+  bool isPlainEqual(const PresburgerSimpifyRelation &other) const;
+  bool isPlainDisjoint(const PresburgerSimpifyRelation &other) const;
+  PresburgerSimpifyRelation subtract(const PresburgerRelation &set) const;
+  PresburgerSimpifyRelation
+  subtract(const PresburgerSimpifyRelation &set) const;
+
+  /// Mutate this set, turning it into the union of this set and the given
+  /// disjunct.
+  void unionInPlace(const IntegerRelation &disjunct);
+
+  /// Mutate this set, turning it into the union of this set and the given set.
+  void unionInPlace(const PresburgerRelation &set);
+  void unionInPlace(const PresburgerSimpifyRelation &set);
+
+  /// Return the union of this set and the given set.
+  PresburgerRelation unionSet(const PresburgerRelation &set) const;
+  PresburgerSimpifyRelation
+  unionSet(const PresburgerSimpifyRelation &set) const;
+
+  PresburgerSimpifyRelation simplify();
+
+protected:
+  explicit PresburgerSimpifyRelation(const PresburgerSpace &space)
+      : PresburgerRelation(space) {
+    assert(space.getNumLocalVars() == 0 &&
+           "PresburgerRelation cannot have local vars.");
+  }
+};
+
 } // namespace presburger
 } // namespace mlir
 

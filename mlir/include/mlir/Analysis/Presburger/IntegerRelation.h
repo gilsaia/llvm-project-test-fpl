@@ -128,10 +128,22 @@ public:
   /// If there are locals, they will be merged.
   IntegerRelation intersect(IntegerRelation other) const;
 
+  IntegerRelation intersectAddConstraint(IntegerRelation other) const;
+
+  IntegerRelation intersectSimplify(IntegerRelation other) const;
+
+  void simplifyForIntersect();
+
+  bool simplifyBasic();
+
   /// Return whether `this` and `other` are equal. This is integer-exact
   /// and somewhat expensive, since it uses the integer emptiness check
   /// (see IntegerRelation::findIntegerSample()).
   bool isEqual(const IntegerRelation &other) const;
+
+  bool isPlainEqual(const IntegerRelation &other) const;
+
+  bool isPlainDisjoint(const IntegerRelation &other) const;
 
   /// Return whether this is a subset of the given IntegerRelation. This is
   /// integer-exact and somewhat expensive, since it uses the integer emptiness
@@ -316,6 +328,9 @@ public:
 
   /// Removes all equalities and inequalities.
   void clearConstraints();
+
+  // Clear constraints and set 1==0
+  void setEmpty();
 
   /// Sets the `values.size()` variables starting at `po`s to the specified
   /// values and removes them.
@@ -538,6 +553,8 @@ public:
 
   void removeDuplicateDivs();
 
+  IntegerRelation normalize() const;
+
   /// Converts variables of kind srcKind in the range [varStart, varLimit) to
   /// variables of kind dstKind. If `pos` is given, the variables are placed at
   /// position `pos` of dstKind, otherwise they are placed after all the other
@@ -717,6 +734,10 @@ protected:
   /// Returns the number of variables eliminated.
   unsigned gaussianEliminateVars(unsigned posStart, unsigned posLimit);
 
+  bool gaussianEliminate();
+
+  bool removeDuplicateConstraints();
+
   /// Eliminates the variable at the specified position using Fourier-Motzkin
   /// variable elimination, but uses Gaussian elimination if there is an
   /// equality involving that variable. If the result of the elimination is
@@ -737,6 +758,8 @@ protected:
 
   /// Normalized each constraints by the GCD of its coefficients.
   void normalizeConstraintsByGCD();
+
+  void sortConstraints();
 
   /// Searches for a constraint with a non-zero coefficient at `colIdx` in
   /// equality (isEq=true) or inequality (isEq=false) constraints.

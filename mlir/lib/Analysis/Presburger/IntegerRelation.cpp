@@ -75,6 +75,48 @@ IntegerRelation IntegerRelation::intersect(IntegerRelation other) const {
   return result;
 }
 
+IntegerRelation
+IntegerRelation::intersectAddConstraint(IntegerRelation other) const {
+  IntegerRelation result = *this;
+  result.append(other);
+  return result;
+}
+
+IntegerRelation
+IntegerRelation::intersectSimplify(IntegerRelation other) const {
+  IntegerRelation result = *this;
+  result.mergeLocalVars(other);
+  result.append(other);
+  return result;
+}
+
+void IntegerRelation::simplifyForIntersect() {
+  if (isEmptyByGCDTest()) {
+    setEmpty();
+    return;
+  }
+  normalizeConstraintsByGCD();
+  removeRedundantLocalVars();
+
+  removeTrivialRedundancy();
+  return;
+}
+
+bool IntegerRelation::simplifyBasic() {
+  // normalize();
+  bool changed = true;
+  while (changed) {
+    changed = false;
+    normalizeConstraintsByGCD();
+    changed |= gaussianEliminate();
+    if (isEmptyByGCDTest() || hasInvalidConstraint()) {
+      return false;
+    }
+    changed |= removeDuplicateConstraints();
+  }
+  return true;
+}
+
 bool IntegerRelation::isEqual(const IntegerRelation &other) const {
   assert(space.isCompatible(other.getSpace()) && "Spaces must be compatible.");
   return PresburgerRelation(*this).isEqual(PresburgerRelation(other));
@@ -83,6 +125,44 @@ bool IntegerRelation::isEqual(const IntegerRelation &other) const {
 bool IntegerRelation::isSubsetOf(const IntegerRelation &other) const {
   assert(space.isCompatible(other.getSpace()) && "Spaces must be compatible.");
   return PresburgerRelation(*this).isSubsetOf(PresburgerRelation(other));
+}
+
+bool IntegerRelation::isPlainEqual(const IntegerRelation &other) const {
+  if (!space.isCompatible(other.getSpace())) {
+    return false;
+  }
+  if (getNumEqualities() != other.getNumEqualities()) {
+    return false;
+  }
+  if (getNumInequalities() != other.getNumInequalities()) {
+    return false;
+  }
+  unsigned int cols = getNumCols();
+  for (unsigned int i = 0, eqs = getNumEqualities(); i < eqs; ++i) {
+    for (unsigned int j = 0; j < cols; ++j) {
+      if (atEq(i, j) != other.atEq(i, j)) {
+        return false;
+      }
+    }
+  }
+  for (unsigned int i = 0, ineqs = getNumInequalities(); i < ineqs; ++i) {
+    for (unsigned int j = 0; j < cols; ++j) {
+      if (atIneq(i, j) != other.atIneq(i, j)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+bool IntegerRelation::isPlainDisjoint(const IntegerRelation &other) const {
+  assert(space.isCompatible(other.getSpace()) && "Spaces must be compatible.");
+
+  if (!getNumEqualities() && !other.getNumEqualities()) {
+    return false;
+  }
+  // TODO try to get vec to see if disjunct
+  return false;
 }
 
 MaybeOptimum<SmallVector<Fraction, 8>>
@@ -419,6 +499,15 @@ void IntegerRelation::swapVar(unsigned posA, unsigned posB) {
 void IntegerRelation::clearConstraints() {
   equalities.resizeVertically(0);
   inequalities.resizeVertically(0);
+}
+
+void IntegerRelation::setEmpty() {
+  clearConstraints();
+  auto col = getNumCols();
+  std::vector<int64_t> eqeff(col, 0);
+  eqeff.back() = 1;
+  ArrayRef<int64_t> eq(eqeff);
+  addEquality(eq);
 }
 
 /// Gather all lower and upper bounds of the variable at `pos`, and
@@ -1055,6 +1144,108 @@ unsigned IntegerRelation::gaussianEliminateVars(unsigned posStart,
   return posLimit - posStart;
 }
 
+bool IntegerRelation::gaussianEliminate() {
+  gcdTightenInequalities();
+  unsigned lastVar = 0, vars = getNumVars();
+  unsigned nowDone, eqs, pivotRow;
+  for (nowDone = 0, eqs = getNumEqualities(); nowDone < eqs; ++nowDone) {
+    for (; lastVar < vars; ++lastVar) {
+      if (!findConstraintWithNonZeroAt(lastVar, true, &pivotRow)) {
+        continue;
+      }
+      break;
+    }
+    if (lastVar >= vars)
+      break;
+    if (pivotRow > nowDone) {
+      equalities.swapRows(pivotRow, nowDone);
+      pivotRow = nowDone;
+    }
+    for (unsigned i = nowDone + 1; i < eqs; ++i) {
+      eliminateFromConstraint(this, i, pivotRow, lastVar, 0, true);
+      equalities.normalizeRow(i);
+    }
+    for (unsigned i = 0, ineqs = getNumInequalities(); i < ineqs; ++i) {
+      eliminateFromConstraint(this, i, pivotRow, lastVar, 0, false);
+      inequalities.normalizeRow(i);
+    }
+    gcdTightenInequalities();
+  }
+
+  // if (nowDone != eqs) {
+  //   printf("Work for done:%u eqs:%u\n", nowDone, eqs);
+  // }
+
+  if (nowDone == eqs)
+    return false;
+
+  for (unsigned i = nowDone; i < eqs; ++i) {
+    if (atEq(i, vars) == 0)
+      continue;
+
+    setEmpty();
+    return true;
+  }
+  removeEqualityRange(nowDone, eqs);
+  return true;
+}
+
+bool IntegerRelation::removeDuplicateConstraints() {
+  bool changed = false;
+  SmallDenseMap<ArrayRef<MPInt>, unsigned> hashTable;
+  unsigned ineqs = getNumInequalities(), cols = getNumCols();
+  if (ineqs <= 1) {
+    return changed;
+  }
+  auto row = getInequality(0).drop_back();
+  hashTable.insert({row, 0});
+  for (unsigned k = 1; k < ineqs; ++k) {
+    auto nRow = getInequality(k).drop_back();
+    if (!hashTable.contains(nRow)) {
+      hashTable.insert({nRow, k});
+      continue;
+    }
+    unsigned l = hashTable[nRow];
+    changed = true;
+    if (atIneq(k, cols - 1) <= atIneq(l, cols - 1)) {
+      inequalities.swapRows(k, l);
+    }
+    removeInequality(k);
+    --k;
+    --ineqs;
+  }
+  inequalities.appendExtraRow();
+  bool negChanged = false;
+  for (unsigned k = 0; k < ineqs; ++k) {
+    inequalities.copyRow(k, ineqs);
+    inequalities.negateRow(ineqs);
+    auto nRow = getInequality(ineqs).drop_back();
+    if (!hashTable.contains(nRow)) {
+      continue;
+    }
+    unsigned l = hashTable[nRow];
+    auto sum = atIneq(l, cols - 1) + atIneq(k, cols - 1);
+    if (sum > 0) {
+      continue;
+    }
+    negChanged = true;
+    changed = true;
+    if (sum == 0) {
+      addEquality(getInequality(k));
+      removeInequality(ineqs);
+      removeInequality(l);
+      removeInequality(k);
+    } else {
+      setEmpty();
+    }
+    break;
+  }
+  if (!negChanged) {
+    removeInequality(ineqs);
+  }
+  return changed;
+}
+
 // A more complex check to eliminate redundant inequalities. Uses FourierMotzkin
 // to check if a constraint is redundant.
 void IntegerRelation::removeRedundantInequalities() {
@@ -1118,6 +1309,77 @@ void IntegerRelation::removeRedundantConstraints() {
       equalities.copyRow(r, pos++);
   }
   equalities.resizeVertically(pos);
+}
+
+IntegerRelation IntegerRelation::normalize() const {
+  IntegerRelation result = *this;
+  result.removeTrivialRedundancy();
+  result.sortConstraints();
+  return result;
+}
+
+void IntegerRelation::sortConstraints() {
+  auto eqs = getNumEqualities(), ineqs = getNumInequalities();
+  auto cmp = [](const std::pair<ArrayRef<MPInt>, unsigned int> &lhs,
+                const std::pair<ArrayRef<MPInt>, unsigned int> &rhs) {
+    unsigned int l1 = lhs.first.size() - 1, l2 = rhs.first.size() - 1;
+    while (l1 > 0 && lhs.first[l1] == 0) {
+      --l1;
+    }
+    while (l2 > 0 && rhs.first[l2] == 0) {
+      --l2;
+    }
+    if (l1 != l2) {
+      return l1 < l2;
+    }
+    if (abs(lhs.first[l1]) != abs(rhs.first[l2])) {
+      return abs(lhs.first[l1]) < abs(rhs.first[l2]);
+    }
+    return lhs.first[l1] < rhs.first[l2];
+  };
+  SmallVector<std::pair<ArrayRef<MPInt>, unsigned int>, 8> toSortEqs,
+      toSortIneqs;
+  for (unsigned int i = 0; i < eqs; ++i)
+    toSortEqs.emplace_back(std::make_pair(getEquality(i), i));
+  llvm::sort(toSortEqs, cmp);
+  unsigned int lastidx = 0;
+  while (lastidx < eqs) {
+    if (toSortEqs[lastidx].second != lastidx) {
+      unsigned int next = toSortEqs[lastidx].second, tmp;
+      tmp = toSortEqs[next].second;
+      equalities.swapRows(lastidx, next);
+      toSortEqs[lastidx].second = lastidx;
+      while (tmp != lastidx) {
+        equalities.swapRows(tmp, next);
+        toSortEqs[next].second = next;
+        next = tmp;
+        tmp = toSortEqs[next].second;
+      }
+      toSortEqs[next].second = next;
+    }
+    ++lastidx;
+  }
+
+  for (unsigned int i = 0; i < ineqs; ++i)
+    toSortIneqs.emplace_back(std::make_pair(getInequality(i), i));
+  llvm::sort(toSortIneqs, cmp);
+  lastidx = 0;
+  while (lastidx < ineqs) {
+    if (toSortIneqs[lastidx].second != lastidx) {
+      unsigned int next = toSortIneqs[lastidx].second, tmp;
+      tmp = toSortIneqs[next].second;
+      inequalities.swapRows(lastidx, next);
+      toSortIneqs[lastidx].second = lastidx;
+      while (tmp != lastidx) {
+        inequalities.swapRows(tmp, next);
+        toSortIneqs[next].second = next;
+        next = tmp;
+        tmp = toSortIneqs[next].second;
+      }
+      toSortIneqs[next].second = next;
+    }
+    ++lastidx;
+  }
 }
 
 std::optional<MPInt> IntegerRelation::computeVolume() const {
