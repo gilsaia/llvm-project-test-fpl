@@ -226,7 +226,8 @@ void FPLSetupUnionSimplify(const benchmark::State &state) {
   readFunc = FPLParseThreeCaseUseTwoCase;
   binarySimplifyExecFunc = [](PresburgerSimpifyRelation &a,
                               PresburgerSimpifyRelation &b) {
-    benchmark::DoNotOptimize(a.unionSet(b));
+    benchmark::DoNotOptimize(a.simplify().unionSet(b.simplify()));
+    // benchmark::DoNotOptimize(a.unionSet(b));
   };
   binaryExecFunc = [](PresburgerRelation &a, PresburgerRelation &b) {};
   simplifyForCountFunc = [](PresburgerRelation &a) {
@@ -234,7 +235,9 @@ void FPLSetupUnionSimplify(const benchmark::State &state) {
     a = rel.simplify();
   };
   binaryReturnExecFunc = [](PresburgerRelation &a, PresburgerRelation &b) {
-    return PresburgerSimpifyRelation(a).unionSet(b);
+    // return PresburgerSimpifyRelation(a).unionSet(b);
+    return PresburgerSimpifyRelation(a).simplify().unionSet(
+        PresburgerSimpifyRelation(b).simplify());
   };
 }
 
@@ -254,7 +257,8 @@ void FPLSetupSubtractSimplify(const benchmark::State &state) {
   readFunc = FPLParseThreeCaseUseTwoCase;
   binarySimplifyExecFunc = [](PresburgerSimpifyRelation &a,
                               PresburgerSimpifyRelation &b) {
-    benchmark::DoNotOptimize(a.subtract(b));
+    benchmark::DoNotOptimize(a.simplify().subtract(b.simplify()));
+    // benchmark::DoNotOptimize(a.subtract(b));
   };
   binaryExecFunc = [](PresburgerRelation &a, PresburgerRelation &b) {};
   simplifyForCountFunc = [](PresburgerRelation &a) {
@@ -262,7 +266,9 @@ void FPLSetupSubtractSimplify(const benchmark::State &state) {
     a = rel.simplify();
   };
   binaryReturnExecFunc = [](PresburgerRelation &a, PresburgerRelation &b) {
-    return PresburgerSimpifyRelation(a).subtract(b);
+    // return PresburgerSimpifyRelation(a).subtract(b);
+    return PresburgerSimpifyRelation(a).subtract(
+        PresburgerSimpifyRelation(b).simplify());
   };
 }
 
@@ -279,14 +285,18 @@ void FPLSetupComplementSimplify(const benchmark::State &state) {
   fileName = "./PresburgerSetComplement";
   readFunc = FPLParseTwoCaseUseOneCase;
   unarySimplifyExecFunc = [](PresburgerSimpifyRelation &a) {
-    benchmark::DoNotOptimize(a.complement());
+    benchmark::DoNotOptimize(a.simplify().complement());
+    // benchmark::DoNotOptimize(a.complement());
   };
   unaryExecFunc = [](PresburgerRelation &a) {};
   simplifyForCountFunc = [](PresburgerRelation &a) {
     PresburgerSimpifyRelation rel(a);
     a = rel.simplify();
   };
-  unaryReturnExecFunc = [](PresburgerRelation &a) { return a.complement(); };
+  unaryReturnExecFunc = [](PresburgerRelation &a) {
+    // return a.complement();
+    return PresburgerSimpifyRelation(a).simplify().complement();
+  };
 }
 
 void FPLSetupIntersect(const benchmark::State &state) {
@@ -305,7 +315,8 @@ void FPLSetupIntersectSimplify(const benchmark::State &state) {
   readFunc = FPLParseThreeCaseUseTwoCase;
   binarySimplifyExecFunc = [](PresburgerSimpifyRelation &a,
                               PresburgerSimpifyRelation &b) {
-    benchmark::DoNotOptimize(a.intersect(b));
+    benchmark::DoNotOptimize(a.simplify().intersect(b.simplify()));
+    // benchmark::DoNotOptimize(a.intersect(b));
   };
   binaryExecFunc = [](PresburgerRelation &a, PresburgerRelation &b) {};
   simplifyForCountFunc = [](PresburgerRelation &a) {
@@ -313,7 +324,9 @@ void FPLSetupIntersectSimplify(const benchmark::State &state) {
     a = rel.simplify();
   };
   binaryReturnExecFunc = [](PresburgerRelation &a, PresburgerRelation &b) {
-    return PresburgerSimpifyRelation(a).intersect(b);
+    // return PresburgerSimpifyRelation(a).intersect(b);
+    return PresburgerSimpifyRelation(a).simplify().intersect(
+        PresburgerSimpifyRelation(b).simplify());
   };
 }
 
@@ -331,8 +344,10 @@ void FPLSetupIsEqual(const benchmark::State &state) {
 void FPLSetupIsEqualSimplify(const benchmark::State &state) {
   fileName = "./PresburgerSetEqual";
   readFunc = FPLParseTwoCaseOntInt;
-  binarySimplifyExecFunc = [](PresburgerRelation &a, PresburgerRelation &b) {
-    benchmark::DoNotOptimize(a.isEqual(b));
+  binarySimplifyExecFunc = [](PresburgerSimpifyRelation &a,
+                              PresburgerSimpifyRelation &b) {
+    // benchmark::DoNotOptimize(a.isEqual(b));
+    benchmark::DoNotOptimize(a.simplify().isEqual(b.simplify()));
   };
   binaryExecFunc = [](PresburgerRelation &a, PresburgerRelation &b) {};
   simplifyForCountFunc = [](PresburgerRelation &a) {
@@ -359,7 +374,8 @@ void FPLSetupIsEmptySimplify(const benchmark::State &state) {
   fileName = "./PresburgerSetEmpty";
   readFunc = FPLParseOneCaseOneInt;
   unarySimplifyExecFunc = [](PresburgerSimpifyRelation &a) {
-    benchmark::DoNotOptimize(a.isIntegerEmpty());
+    // benchmark::DoNotOptimize(a.isIntegerEmpty());
+    benchmark::DoNotOptimize(a.simplify().isIntegerEmpty());
   };
   unaryExecFunc = [](PresburgerRelation &a) {};
   simplifyForCountFunc = [](PresburgerRelation &a) {
@@ -378,7 +394,7 @@ void BM_FPLUnaryOperationCheck(benchmark::State &state) {
   readFunc(fileName, setsA, setsB);
   if (useSimplify) {
     for (auto &rel : setsA) {
-      simplifyForCountFunc(rel);
+      // simplifyForCountFunc(rel);
       setsAT.emplace_back(rel);
     }
   }
@@ -454,8 +470,8 @@ void BM_FPLBinaryOperationCheck(benchmark::State &state) {
   size_t num = setsA.size();
   if (useSimplify) {
     for (size_t i = 0; i < num; ++i) {
-      simplifyForCountFunc(setsA[i]);
-      simplifyForCountFunc(setsB[i]);
+      // simplifyForCountFunc(setsA[i]);
+      // simplifyForCountFunc(setsB[i]);
       setsAT.emplace_back(setsA[i]);
       setsBT.emplace_back(setsB[i]);
     }

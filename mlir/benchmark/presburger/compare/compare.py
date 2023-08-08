@@ -3,8 +3,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 
-file_names = ['Union', 'Empty', 'Equal', 'Complement', 'Intersect', 'Subtract']
-# file_names = ['Union', 'Subtract']
+# file_names = ['Union', 'Empty', 'Equal', 'Complement', 'Intersect', 'Subtract']
+file_names = [ 'Subtract']
 func_line_map = {'Union': 3, 'Empty': 2, 'Equal': 3,
                  'Complement': 2, 'Intersect': 3, 'Subtract': 3}
 isl_case_map = {'Union': 3, 'Empty': 1, 'Equal': 3,
@@ -225,7 +225,7 @@ def fig_time_line(func_name, info, image_path):
     x = np.arange(0, isl_times.size, 1)
     full_size = round(isl_times.size/1000)*1000
     half_size = full_size/2
-    plt.figure(figsize=(8, 6))
+    plt.figure(figsize=(20, 15))
     plt.plot(x, fpl_times, '--', label='fpl')
     plt.plot(x, fpl_simplify_times, '--', label='fpl_optim')
     plt.plot(x, isl_times, '--', label='isl')
@@ -248,7 +248,7 @@ def fig_time_by_isl_line(func_name, info, image_path):
     x = np.arange(0, isl_times.size, 1)
     full_size = round(isl_times.size/1000)*1000
     half_size = full_size/2
-    plt.figure(figsize=(8, 6))
+    plt.figure(figsize=(20, 15))
     plt.plot(x, fpl_times, '--', label='fpl')
     plt.plot(x, fpl_simplify_times, '--', label='fpl_optim')
     plt.plot(x, isl_times, '--', label='isl')
@@ -269,10 +269,10 @@ def fig_size_line(func_name, info, image_path):
     x = np.arange(0, isl_sizes.size, 1)
     full_size = round(isl_sizes.size/1000)*1000
     half_size = full_size/2
-    plt.figure(figsize=(8, 6))
+    plt.figure(figsize=(20, 15))
     plt.plot(x, fpl_sizes, '--', label='fpl')
     plt.plot(x, fpl_simplify_sizes, '--', label='fpl_optim')
-    plt.plot(x, isl_sizes, '--', label='isl')
+    plt.plot(x, isl_sizes, '-', label='isl',alpha=0.5)
     plt.yscale('symlog')
     plt.legend()
     plt.xticks([0, half_size, full_size])
@@ -290,10 +290,10 @@ def fig_result_size_line(func_name, info, image_path):
     x = np.arange(0, isl_sizes.size, 1)
     full_size = round(isl_sizes.size/1000)*1000
     half_size = full_size/2
-    plt.figure(figsize=(8, 6))
+    plt.figure(figsize=(20, 15))
     plt.plot(x, fpl_sizes, '--', label='fpl')
     plt.plot(x, fpl_simplify_sizes, '--', label='fpl_optim')
-    plt.plot(x, isl_sizes, '--', label='isl')
+    plt.plot(x, isl_sizes, '--', label='isl',alpha=0.5)
     plt.yscale('symlog')
     plt.legend()
     plt.xticks([0, half_size, full_size])
@@ -413,10 +413,10 @@ if __name__ == '__main__':
         # gen_top(fun, info, 'isl_time', isl_cases, fpl_cases)
         # gen_top(fun, info, 'fpl_time', isl_cases, fpl_cases)
         # gen_top(fun, info, 'diff_time', isl_cases, fpl_cases)
-        # fig_time_line(fun, info, image_path)
+        fig_time_line(fun, info, image_path)
         # fig_time_by_isl_line(fun, info, image_path)
-        fig_size_line(fun, info, image_path)
-        # fig_result_size_line(fun, info, image_path)
+        # fig_size_line(fun, info, image_path)
+        fig_result_size_line(fun, info, image_path)
         # fig_diff_size_line(fun, info, image_path)
         # fig_diff_time_line(fun, info, image_path)
         # gen_top(fun, info, 'diff_optim_time', isl_cases, fpl_cases, top_path)

@@ -214,7 +214,8 @@ void ISLSetupUnion(const benchmark::State &state) {
     benchmark::DoNotOptimize(a = isl_map_union(a, b));
     auto end = std::chrono::high_resolution_clock::now();
     execTime +=
-        std::chrono::duration_cast<std::chrono::duration<double>>(end - start)
+        std::chrono::duration_cast<std::chrono::duration<double, std::nano>>(
+            end - start)
             .count();
     return a;
   };
@@ -228,7 +229,8 @@ void ISLSetupSubtract(const benchmark::State &state) {
     benchmark::DoNotOptimize(a = isl_map_subtract(a, b));
     auto end = std::chrono::high_resolution_clock::now();
     execTime +=
-        std::chrono::duration_cast<std::chrono::duration<double>>(end - start)
+        std::chrono::duration_cast<std::chrono::duration<double, std::nano>>(
+            end - start)
             .count();
     return a;
   };
@@ -242,7 +244,8 @@ void ISLSetupComplement(const benchmark::State &state) {
     benchmark::DoNotOptimize(a = isl_map_complement(a));
     auto end = std::chrono::high_resolution_clock::now();
     execTime +=
-        std::chrono::duration_cast<std::chrono::duration<double>>(end - start)
+        std::chrono::duration_cast<std::chrono::duration<double, std::nano>>(
+            end - start)
             .count();
     return a;
   };
@@ -256,7 +259,8 @@ void ISLSetupIntersect(const benchmark::State &state) {
     benchmark::DoNotOptimize(a = isl_map_intersect(a, b));
     auto end = std::chrono::high_resolution_clock::now();
     execTime +=
-        std::chrono::duration_cast<std::chrono::duration<double>>(end - start)
+        std::chrono::duration_cast<std::chrono::duration<double, std::nano>>(
+            end - start)
             .count();
     return a;
   };
@@ -270,7 +274,8 @@ void ISLSetupIsEqual(const benchmark::State &state) {
     benchmark::DoNotOptimize(isl_map_is_equal(a, b));
     auto end = std::chrono::high_resolution_clock::now();
     execTime +=
-        std::chrono::duration_cast<std::chrono::duration<double>>(end - start)
+        std::chrono::duration_cast<std::chrono::duration<double, std::nano>>(
+            end - start)
             .count();
     setsNoUse.emplace_back(a);
     setsNoUse.emplace_back(b);
@@ -286,7 +291,8 @@ void ISLSetupIsEmpty(const benchmark::State &state) {
     benchmark::DoNotOptimize(isl_map_is_empty(map));
     auto end = std::chrono::high_resolution_clock::now();
     execTime +=
-        std::chrono::duration_cast<std::chrono::duration<double>>(end - start)
+        std::chrono::duration_cast<std::chrono::duration<double, std::nano>>(
+            end - start)
             .count();
     setsNoUse.emplace_back(map);
     return isl_map_empty(isl_map_get_space(map));
@@ -307,7 +313,7 @@ void BM_ISLUnaryOperationCheck(benchmark::State &state) {
     for (size_t i = 0, n = setsCopyA.size(); i < n; ++i) {
       setsCopyA[i] = unaryExecFunc(setsCopyA[i], execTime);
     }
-    state.SetIterationTime(execTime);
+    state.SetIterationTime(execTime / 1e9);
   }
 
   ISLCopyMaps(setsA, setsCopyA);
@@ -396,7 +402,7 @@ void BM_ISLBinaryOperationCheck(benchmark::State &state) {
     for (size_t i = 0, n = setsCopyA.size(); i < n; ++i) {
       setsCopyA[i] = binaryExecFunc(setsCopyA[i], setsCopyB[i], execTime);
     }
-    state.SetIterationTime(execTime);
+    state.SetIterationTime(execTime / 1e9);
   }
 
   ISLCopyMaps(setsA, setsCopyA);
